@@ -31,11 +31,14 @@ export function sanitizeRecipeDraft(draft){
   const source = draft && typeof draft === 'object' ? draft : {};
   const ingredientes = Array.isArray(source.ingredientes)
     ? source.ingredientes.map(row => {
-        const cantidad = Number(row?.cantidad);
+        const rawCantidad = row?.cantidad;
+        const hasCantidad = rawCantidad !== null && rawCantidad !== undefined && String(rawCantidad).trim() !== '';
+        const parsedCantidad = hasCantidad ? Number(rawCantidad) : NaN;
+        const cantidad = Number.isFinite(parsedCantidad) && parsedCantidad >= 0 ? parsedCantidad : null;
         return {
           ingrediente: cleanString(row?.ingrediente),
-          cantidad: Number.isFinite(cantidad) && cantidad > 0 ? cantidad : null,
-          unidad: cleanString(row?.unidad)
+          cantidad,
+          unidad: cantidad === 0 ? '' : cleanString(row?.unidad)
         };
       }).filter(row => row.ingrediente || row.cantidad !== null || row.unidad)
     : [];
@@ -81,8 +84,14 @@ export function validateRecipe(recipe){
   if (!recipe.ingredientes.length) {
     errors.push({field:'ingredientsRows',message:'Añade al menos un ingrediente.'});
   } else {
-    const invalidIngredient = recipe.ingredientes.find(row => !row.ingrediente || !Number.isFinite(row.cantidad) || row.cantidad <= 0 || !row.unidad);
-    if (invalidIngredient) errors.push({field:'ingredientsRows',message:'Completa ingrediente, cantidad mayor que 0 y unidad en todas las filas.'});
+    const invalidIngredient = recipe.ingredientes.find(row =>
+      !row.ingrediente
+      || !Number.isFinite(row.cantidad)
+      || row.cantidad < 0
+      || (row.cantidad > 0 && !row.unidad)
+      || (row.cantidad === 0 && Boolean(row.unidad))
+    );
+    if (invalidIngredient) errors.push({field:'ingredientsRows',message:'Completa ingrediente y cantidad. Para cantidades mayores que 0 selecciona una unidad; con 0 se guarda como “Al gusto” sin unidad.'});
   }
 
   if (!recipe.alquimia.length) errors.push({field:'alchemySteps',message:'Añade al menos un paso de ALQUIMIA.'});

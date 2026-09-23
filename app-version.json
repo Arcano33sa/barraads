@@ -1,5 +1,5 @@
 {
-  "version": "1.9.0",
+  "version": "1.9.1",
   "schemaVersion": 1,
-  "notes": "Hardening final: responsive, persistencia, regresión completa y ciclo PWA/caché reforzado."
+  "notes": "Ajuste de ingredientes al gusto: cantidad 0 sin unidad, persistencia y visualización como Al gusto."
 }

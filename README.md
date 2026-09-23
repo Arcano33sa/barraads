@@ -1,6 +1,6 @@
 # Barra de El Ágora del Sir — Final Hardened
 
-Versión final 1.9.0 cerrada sobre la base funcional de la Etapa 8, sin agregar funciones nuevas ni alterar la identidad visual o las reglas de negocio.
+Versión final 1.9.1 cerrada sobre la base funcional de la Etapa 8, sin agregar funciones nuevas ni alterar la identidad visual o las reglas de negocio.
 
 ## Hardening final
 - Regresión de navegación y módulos principales.
@@ -16,12 +16,17 @@ Versión final 1.9.0 cerrada sobre la base funcional de la Etapa 8, sin agregar 
 - Ajustes de foco, estado accesible de favoritas y cierre por Escape en confirmaciones de Configuración.
 - Sin logs de depuración ni dependencias nuevas.
 
+## Ajuste 1.9.1 — Ingredientes “Al gusto”
+- La cantidad `0` es válida para un ingrediente.
+- Al usar `0`, la unidad se limpia y queda desactivada en el formulario.
+- La ficha muestra `Al gusto` en lugar de `0`.
+- Se conserva al crear, editar, duplicar y respaldar/restaurar mediante JSON.
+
 ## Persistencia
 - Recetas, catálogos y configuración: LocalStorage.
 - Fotografías optimizadas y miniaturas: IndexedDB.
 - Actualizar la PWA no borra ni reemplaza esos almacenes.
 
 ## Versión
-- App/PWA: 1.9.0
+- App/PWA: 1.9.1
 - Esquema de respaldo JSON: 1
-# barraads

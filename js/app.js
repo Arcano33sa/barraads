@@ -505,6 +505,12 @@ function formatRecipeAmount(value){
   return new Intl.NumberFormat('es-NI',{maximumFractionDigits:2}).format(amount);
 }
 
+function formatIngredientAmount(row){
+  const amount = Number(row?.cantidad);
+  if (Number.isFinite(amount) && amount === 0) return 'Al gusto';
+  return [formatRecipeAmount(row?.cantidad),row?.unidad || ''].filter(Boolean).join(' ');
+}
+
 function statusClass(value){
   if (value === 'Aprobada') return 'is-approved';
   if (value === 'Descartada') return 'is-discarded';
@@ -544,7 +550,7 @@ async function renderRecipeDetail(recipeId){
     <div class="detail-ingredient-row">
       <span class="detail-index">${index + 1}</span>
       <strong>${escapeHtml(row.ingrediente || 'Ingrediente')}</strong>
-      <span class="detail-amount">${escapeHtml(formatRecipeAmount(row.cantidad))} ${escapeHtml(row.unidad || '')}</span>
+      <span class="detail-amount">${escapeHtml(formatIngredientAmount(row))}</span>
     </div>`).join('') || '<p class="detail-empty-value">Sin ingredientes registrados.</p>';
   const alchemyMarkup = alchemy.map((step,index) => `
     <li class="detail-alchemy-step">
@@ -1027,6 +1033,18 @@ function makeOptions(items,selected,placeholder){
   return `<option value="">${escapeHtml(placeholder)}</option>` + values.map(item => `<option value="${escapeHtml(item)}"${item === selected ? ' selected' : ''}>${escapeHtml(item)}</option>`).join('');
 }
 
+function syncIngredientUnitForAmount(row){
+  if (!row) return;
+  const amountInput = row.querySelector('[data-ingredient-amount]');
+  const unitSelect = row.querySelector('[data-ingredient-unit]');
+  if (!amountInput || !unitSelect) return;
+  const raw = String(amountInput.value ?? '').trim();
+  const isAlGusto = raw !== '' && Number(raw) === 0;
+  if (isAlGusto) unitSelect.value = '';
+  unitSelect.disabled = isAlGusto;
+  unitSelect.setAttribute('aria-label',isAlGusto ? 'Unidad no necesaria: Al gusto' : 'Unidad');
+}
+
 function addIngredientRow(data = {}){
   if (!ingredientsRows) return;
   const row = document.createElement('div');
@@ -1037,6 +1055,7 @@ function addIngredientRow(data = {}){
     <select data-ingredient-unit aria-label="Unidad">${makeOptions(catalogs.unidades,data.unidad || '','Unidad')}</select>
     <button class="row-delete" type="button" data-remove-ingredient aria-label="Eliminar ingrediente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5"/></svg></button>`;
   ingredientsRows.append(row);
+  syncIngredientUnitForAmount(row);
 }
 
 function rebuildIngredientRows(rows = null){
@@ -1604,6 +1623,16 @@ recipeStatus?.addEventListener('change',updateRecipeStatusVisual);
 secondaryBasesOptions?.addEventListener('change',()=>updateMultiSummary(secondaryBasesOptions,secondaryBasesSummary,'Selecciona bases (opcional)'));
 techniquesOptions?.addEventListener('change',()=>updateMultiSummary(techniquesOptions,techniquesSummary,'Selecciona técnicas'));
 tagsOptions?.addEventListener('change',()=>updateMultiSummary(tagsOptions,tagsSummary,'Selecciona etiquetas'));
+ingredientsRows?.addEventListener('input',event => {
+  const amount = event.target.closest('[data-ingredient-amount]');
+  if (!amount) return;
+  syncIngredientUnitForAmount(amount.closest('.ingredient-row'));
+});
+ingredientsRows?.addEventListener('change',event => {
+  const amount = event.target.closest('[data-ingredient-amount]');
+  if (!amount) return;
+  syncIngredientUnitForAmount(amount.closest('.ingredient-row'));
+});
 ingredientsRows?.addEventListener('click',event => {
   const remove = event.target.closest('[data-remove-ingredient]');
   if (!remove) return;
