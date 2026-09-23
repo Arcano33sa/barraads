@@ -1,5 +1,5 @@
 {
-  "version": "1.14.3",
+  "version": "1.14.4",
   "schemaVersion": 1,
-  "notes": "Biblioteca de Recetas simplificada: miniatura fija en foto principal, sin flechas de galería, contador compacto solo para múltiples fotos y acceso directo a la Ficha; galería completa permanece en Ficha y visor."
+  "notes": "Menú lateral: eliminado por completo el lema bajo la identidad para evitar solapamiento visual con Inicio en PC; navegación y lógica intactas."
 }

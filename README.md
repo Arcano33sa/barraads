@@ -1,6 +1,6 @@
 # Barra de El Ágora del Sir — Corrección de fotografías — Final Hardened
 
-Versión 1.14.3 construida exclusivamente sobre `Barra_Agora_FotosFix_Etapa1_FichaPrincipal.zip`.
+Versión 1.14.4 construida sobre `Barra_Agora_FotosFix_Final_Hardened.zip`.
 
 ## Cierre final
 
@@ -12,4 +12,6 @@ Versión 1.14.3 construida exclusivamente sobre `Barra_Agora_FotosFix_Etapa1_Fic
 - La primera fotografía sigue siendo la principal; al eliminarla, la siguiente ocupa su lugar según la lógica existente.
 - Por Base y Favoritas mantienen su comportamiento previo, evitando ampliar el cambio fuera de la Biblioteca principal.
 - JSON y exportación conservan orden, foto principal, compatibilidad con múltiples fotos y comportamiento de “Al gusto”.
-- Service Worker/cache actualizado a v1.14.3, sin dependencias CDN y sin limpieza de datos locales ni IndexedDB.
+- Service Worker/cache actualizado a v1.14.4, sin dependencias CDN y sin limpieza de datos locales ni IndexedDB.
+
+- Menú lateral: eliminado el lema “Buenas bebidas / Mejores conversaciones / Siempre aprendiendo” de la interfaz para evitar solapamiento con Inicio en PC.
