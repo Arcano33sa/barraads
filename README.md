@@ -1,15 +1,9 @@
-# Barra de El Ágora del Sir
+## v1.14.7 — Ficha optimizada para iPad vertical
 
-Versión 1.14.6 construida sobre `Barra_Agora_InicioFix_SoloRecetasReales.zip`.
-
-## v1.14.6 — Encabezado limpio
-
-- Eliminada la campana de Notificaciones del encabezado.
-- Eliminado el avatar circular “S”.
-- Eliminados “Sir” y su flecha desplegable.
-- Se conserva intacto el botón de menú móvil y la navegación existente.
-- Sin cambios en recetas, fotografías, Catálogo, ALQUIMIA, JSON, exportación ni datos persistidos.
-- Service Worker/cache actualizado a v1.14.6, sin dependencias CDN y sin limpieza de datos locales ni IndexedDB.
+- En tablet/iPad vertical, la cabecera de la Ficha pasa a dos columnas: fotografía a la izquierda e identidad/metadatos a la derecha.
+- Se conservan foto principal, flechas, contador, visor, favoritos y los cinco datos superiores sin cambios de lógica.
+- Escritorio, iPad horizontal y móvil mantienen su distribución previa.
+- Service Worker/cache actualizado a v1.14.7 sin borrar datos locales ni IndexedDB.
 
 ## v1.14.5 — Inicio sin contenido demo
 - Eliminadas las recetas/base demo heredadas de Inicio.

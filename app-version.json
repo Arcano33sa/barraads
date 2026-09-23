@@ -1,5 +1,5 @@
 {
-  "version": "1.14.6",
+  "version": "1.14.7",
   "schemaVersion": 1,
-  "notes": "Encabezado: eliminados los placeholders sin función de Notificaciones, avatar S y perfil Sir con flecha. Sin cambios en navegación, datos ni lógica de negocio."
+  "notes": "Ficha responsive: en tablet/iPad vertical, fotografía a la izquierda e identidad y metadatos a la derecha. Sin cambios en lógica de fotografías ni en otros formatos."
 }

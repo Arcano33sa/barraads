@@ -356,3 +356,37 @@ body.modal-open{overflow:hidden}
 @media (max-width:700px){.photo-lightbox{padding:10px}.photo-lightbox-dialog{width:100%;height:min(94dvh,900px);grid-template-columns:46px minmax(0,1fr) 46px;gap:4px}.photo-lightbox-nav{width:42px;height:52px;font-size:34px}.photo-lightbox-close{right:4px;top:4px;width:42px;height:42px;font-size:30px}.photo-lightbox-stage{border-radius:10px}.recipe-detail-photo.recipe-photo-gallery .detail-gallery-nav{width:40px;height:48px}.recipe-detail-photo.recipe-photo-gallery .gallery-nav-prev{left:8px}.recipe-detail-photo.recipe-photo-gallery .gallery-nav-next{right:8px}}
 @media (max-width:430px){.photo-lightbox-dialog{grid-template-columns:38px minmax(0,1fr) 38px}.photo-lightbox-nav{width:36px;height:46px;font-size:30px}.photo-lightbox-close{width:40px;height:40px}.stage7-recipe-thumb.recipe-photo-gallery .gallery-nav{width:24px;height:30px}.stage7-recipe-thumb.recipe-photo-gallery .gallery-position{display:none}.stage7-recipe-thumb.recipe-photo-gallery.is-library-static .gallery-position{display:block}}
 @media (pointer:coarse){.gallery-nav{min-width:40px;min-height:40px}.stage7-recipe-thumb.recipe-photo-gallery .gallery-nav{width:34px;height:40px}.recipe-detail-photo.recipe-photo-gallery .detail-gallery-nav{width:52px;height:58px}.photo-lightbox-nav{min-width:54px;min-height:62px}.photo-lightbox-close{min-width:48px;min-height:48px}}
+
+/* AJUSTE RESPONSIVE — FICHA EN TABLET / iPAD VERTICAL
+   Mantiene escritorio, landscape y móvil sin cambios estructurales. */
+@media (min-width:651px) and (max-width:900px) and (orientation:portrait){
+  .recipe-detail-hero{
+    grid-template-columns:minmax(250px,.86fr) minmax(0,1.14fr);
+    gap:12px;
+    align-items:stretch;
+  }
+  .recipe-detail-photo{
+    min-height:0;
+    max-height:none;
+    height:100%;
+    aspect-ratio:4 / 5;
+  }
+  .recipe-detail-photo img,
+  .recipe-detail-photo .gallery-photo-trigger img{
+    object-fit:cover;
+    object-position:center center;
+  }
+  .recipe-detail-intro{
+    padding:15px;
+  }
+  .detail-title-row h1{
+    font-size:clamp(29px,4.3vw,39px);
+  }
+  .detail-meta-grid{
+    gap:8px 10px;
+    margin-top:13px;
+  }
+  .detail-base-line{
+    margin-top:12px;
+  }
+}
