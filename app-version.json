@@ -1,5 +1,5 @@
 {
-  "version": "1.9.1",
+  "version": "1.11.0",
   "schemaVersion": 1,
-  "notes": "Ajuste de ingredientes al gusto: cantidad 0 sin unidad, persistencia y visualización como Al gusto."
+  "notes": "Exportación final de recetas: individual, seleccionadas y todas en PNG/JPG ZIP o PDF multipágina, con selección temporal, progreso real y hardening offline/PWA."
 }

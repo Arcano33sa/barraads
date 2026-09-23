@@ -10,6 +10,7 @@ import {
   optimizeRecipePhoto, buildPhotoReference, saveRecipePhoto, getRecipePhoto, deleteRecipePhoto
 } from './media.js';
 import { initSettings, refreshSettingsView } from './settings.js';
+import { exportRecipesFile } from './export.js';
 
 const sidebar = document.getElementById('sidebar');
 const backdrop = document.getElementById('backdrop');
@@ -101,6 +102,17 @@ const recipeDeleteModalCopy = document.getElementById('recipeDeleteModalCopy');
 const newRecipeTitle = document.getElementById('newRecipeTitle');
 const recipeSaveButton = document.getElementById('recipeSaveButton');
 const recipeEditorBack = document.getElementById('recipeEditorBack');
+const recipeExportModal = document.getElementById('recipeExportModal');
+const recipeExportModalClose = document.getElementById('recipeExportModalClose');
+const recipeExportCancelBtn = document.getElementById('recipeExportCancelBtn');
+const recipeExportTitle = document.getElementById('recipeExportTitle');
+const recipeExportStatus = document.getElementById('recipeExportStatus');
+const recipeLibraryExportBtn = document.getElementById('recipeLibraryExportBtn');
+const recipeSelectionBar = document.getElementById('recipeSelectionBar');
+const recipeSelectionCount = document.getElementById('recipeSelectionCount');
+const recipeSelectionCancelBtn = document.getElementById('recipeSelectionCancelBtn');
+const recipeSelectionExportBtn = document.getElementById('recipeSelectionExportBtn');
+const recipeExportSelectedHint = document.getElementById('recipeExportSelectedHint');
 
 const DEMO_RECIPES = [
   { id:'margarita', name:'Margarita', base:'Tequila', details:'Tequila, triple sec, jugo de lima.', search:'tequila triple sec lima cítrico agitar shaker', thumb:'thumb-margarita' },
@@ -143,6 +155,11 @@ let editingRecipeId = null;
 let editorLoadedRecipeId = null;
 let editingPhotoRemoved = false;
 let pendingRecipeDeleteId = null;
+let exportRecipeTargetId = null;
+let exportBusy = false;
+let exportScope = 'this';
+let recipeSelectionMode = false;
+const selectedRecipeIds = new Set();
 const COLLAPSED_LIBRARY_BASES = new Set();
 
 const escapeHtml = value => String(value)
@@ -365,8 +382,11 @@ function categoryTone(category){
 }
 
 function recipeLibraryRow(recipe,thumbUrl,{favoriteContext=false}={}){
+  const selectable = recipeSelectionMode && !favoriteContext;
+  const selected = selectable && selectedRecipeIds.has(recipe.id);
   return `
-    <article class="stage7-recipe-row" data-stage7-recipe-id="${escapeHtml(recipe.id)}">
+    <article class="stage7-recipe-row${selectable ? ' is-selection-mode' : ''}${selected ? ' is-selected' : ''}" data-stage7-recipe-id="${escapeHtml(recipe.id)}">
+      ${selectable ? `<label class="recipe-select-control" aria-label="Seleccionar ${escapeHtml(recipe.nombre)}"><input type="checkbox" data-select-recipe="${escapeHtml(recipe.id)}" ${selected ? 'checked' : ''}></label>` : ''}
       ${recipeThumbMarkup(recipe,thumbUrl)}
       <button class="stage7-recipe-main" type="button" data-open-saved-recipe="${escapeHtml(recipe.id)}" aria-label="Abrir ${escapeHtml(recipe.nombre)}">
         <strong>${escapeHtml(recipe.nombre)}</strong>
@@ -420,6 +440,7 @@ async function renderRecipesLibrary(){
       <div>${items.map(recipe => recipeLibraryRow(recipe,thumbs.get(recipe.id))).join('')}</div>
     </section>`).join('');
   recipeLibraryEmpty.hidden = filtered.length > 0;
+  updateRecipeSelectionBar();
 }
 
 async function renderBaseLibrary(){
@@ -565,6 +586,7 @@ async function renderRecipeDetail(recipeId){
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 6-6 6 6 6"/></svg><span>Volver a Recetas</span>
       </button>
       <div class="recipe-detail-actions" aria-label="Acciones de receta">
+        <button class="detail-action-button is-export" type="button" data-export-recipe="${escapeHtml(recipe.id)}">Exportar</button>
         <button class="detail-action-button" type="button" data-edit-recipe="${escapeHtml(recipe.id)}">Editar</button>
         <button class="detail-action-button" type="button" data-duplicate-recipe="${escapeHtml(recipe.id)}">Duplicar</button>
         <button class="detail-action-button is-danger" type="button" data-delete-recipe="${escapeHtml(recipe.id)}">Eliminar</button>
@@ -628,6 +650,208 @@ async function renderRecipeDetail(recipeId){
         </section>
       </div>
     </article>`;
+}
+
+function updateRecipeSelectionBar(){
+  if (!recipeSelectionBar) return;
+  recipeSelectionBar.hidden = !recipeSelectionMode;
+  const count = selectedRecipeIds.size;
+  if (recipeSelectionCount) recipeSelectionCount.textContent = `${count} ${count === 1 ? 'seleccionada' : 'seleccionadas'}`;
+  if (recipeSelectionExportBtn) recipeSelectionExportBtn.disabled = count === 0 || exportBusy;
+  if (recipeExportSelectedHint) recipeExportSelectedHint.textContent = count ? `${count} ${count === 1 ? 'receta marcada' : 'recetas marcadas'}` : 'Activa el modo selección';
+}
+
+function enterRecipeSelectionMode(){
+  recipeSelectionMode = true;
+  selectedRecipeIds.clear();
+  showView('recetas');
+  updateRecipeSelectionBar();
+  requestAnimationFrame(()=>recipeLibraryGroups?.querySelector('[data-select-recipe]')?.focus());
+}
+
+function cancelRecipeSelectionMode(){
+  recipeSelectionMode = false;
+  selectedRecipeIds.clear();
+  updateRecipeSelectionBar();
+  void renderRecipesLibrary();
+}
+
+function toggleRecipeSelection(recipeId,checked){
+  if (!recipeSelectionMode || !recipeId) return;
+  if (checked) selectedRecipeIds.add(recipeId); else selectedRecipeIds.delete(recipeId);
+  const row = recipeLibraryGroups?.querySelector(`[data-stage7-recipe-id="${CSS.escape(recipeId)}"]`);
+  row?.classList.toggle('is-selected',Boolean(checked));
+  updateRecipeSelectionBar();
+}
+
+function setRecipeExportBusy(isBusy){
+  exportBusy = Boolean(isBusy);
+  if (!recipeExportModal) return;
+  recipeExportModal.querySelector('.export-modal-card')?.classList.toggle('is-busy',exportBusy);
+  recipeExportModal.querySelectorAll('[data-export-format],[data-export-scope]').forEach(button => { button.disabled = exportBusy || button.dataset.scopeUnavailable === 'true'; });
+  if (recipeExportCancelBtn) recipeExportCancelBtn.disabled = exportBusy;
+  if (recipeExportModalClose) recipeExportModalClose.disabled = exportBusy;
+  if (recipeSelectionExportBtn) recipeSelectionExportBtn.disabled = exportBusy || selectedRecipeIds.size === 0;
+}
+
+function updateExportScopeUi(){
+  if (!recipeExportModal) return;
+  const targetExists = Boolean(exportRecipeTargetId && recipes.some(item => item.id === exportRecipeTargetId));
+  recipeExportModal.querySelectorAll('[data-export-scope]').forEach(button => {
+    const scope = button.dataset.exportScope;
+    button.classList.toggle('is-active',scope === exportScope);
+    button.setAttribute('aria-pressed',scope === exportScope ? 'true' : 'false');
+    const unavailable = scope === 'this' && !targetExists;
+    button.dataset.scopeUnavailable = unavailable ? 'true' : 'false';
+    button.disabled = exportBusy || unavailable;
+  });
+  if (recipeExportSelectedHint) {
+    const count = selectedRecipeIds.size;
+    recipeExportSelectedHint.textContent = count ? `${count} ${count === 1 ? 'receta marcada' : 'recetas marcadas'}` : 'Activa el modo selección';
+  }
+}
+
+function selectExportScope(scope){
+  if (!['this','selected','all'].includes(scope)) return;
+  if (scope === 'selected' && selectedRecipeIds.size === 0) {
+    closeRecipeExportModal();
+    enterRecipeSelectionMode();
+    showToast('Marca una o varias recetas y pulsa “Exportar seleccionadas”.');
+    return;
+  }
+  if (scope === 'this' && !exportRecipeTargetId) {
+    if (recipeExportStatus) {
+      recipeExportStatus.textContent = 'Abre una ficha para usar “Esta receta”.';
+      recipeExportStatus.classList.add('is-error');
+    }
+    return;
+  }
+  exportScope = scope;
+  updateExportScopeUi();
+  if (recipeExportStatus) {
+    const count = scope === 'selected' ? selectedRecipeIds.size : scope === 'all' ? recipes.length : 1;
+    recipeExportStatus.textContent = `${count} ${count === 1 ? 'receta lista' : 'recetas listas'} para exportar. Elige el formato.`;
+    recipeExportStatus.classList.remove('is-error','is-success');
+  }
+}
+
+function openRecipeExportModal(recipeId=null,{scope=null}={}){
+  if (!recipeExportModal) return;
+  const recipe = recipeId ? recipes.find(item => item.id === recipeId) : null;
+  if (recipeId && !recipe) {
+    showToast('No fue posible preparar la exportación.',{error:true});
+    return;
+  }
+  exportRecipeTargetId = recipe?.id || null;
+  exportScope = scope || (recipe ? 'this' : (selectedRecipeIds.size ? 'selected' : 'all'));
+  setRecipeExportBusy(false);
+  if (recipeExportTitle) recipeExportTitle.textContent = recipe ? `Exportar ${recipe.nombre}` : 'Exportar recetas';
+  if (recipeExportStatus) {
+    recipeExportStatus.textContent = 'Elige el alcance y el formato.';
+    recipeExportStatus.classList.remove('is-error','is-success');
+  }
+  recipeExportModal.hidden = false;
+  updateExportScopeUi();
+  setModalState();
+  requestAnimationFrame(()=>recipeExportModal.querySelector(`[data-export-scope="${exportScope}"]:not(:disabled)`)?.focus() || recipeExportModal.querySelector('[data-export-format="png"]')?.focus());
+}
+
+function closeRecipeExportModal(){
+  if (!recipeExportModal || exportBusy) return;
+  recipeExportModal.hidden = true;
+  exportRecipeTargetId = null;
+  exportScope = 'this';
+  if (recipeExportStatus) {
+    recipeExportStatus.textContent = '';
+    recipeExportStatus.classList.remove('is-error','is-success');
+  }
+  setModalState();
+}
+
+function recipesForExportScope(){
+  if (exportScope === 'this') {
+    const recipe = recipes.find(item => item.id === exportRecipeTargetId);
+    return recipe ? [recipe] : [];
+  }
+  if (exportScope === 'selected') {
+    return recipes.filter(item => selectedRecipeIds.has(item.id)).sort((a,b)=>stableRecipeCompare(a,b,'az'));
+  }
+  return [...recipes].sort((a,b)=>stableRecipeCompare(a,b,'az'));
+}
+
+function collectionNameForScope(scope){
+  if (scope === 'selected') return 'Recetas seleccionadas';
+  if (scope === 'all') return 'Todas las recetas';
+  return 'Receta';
+}
+
+async function runRecipeExport(format){
+  if (exportBusy) return;
+  const targets = recipesForExportScope();
+  if (!targets.length) {
+    const message = exportScope === 'selected' ? 'No hay recetas seleccionadas.' : 'No hay recetas disponibles para exportar.';
+    if (recipeExportStatus) {
+      recipeExportStatus.textContent = message;
+      recipeExportStatus.classList.add('is-error');
+    }
+    showToast(message,{error:true});
+    return;
+  }
+
+  setRecipeExportBusy(true);
+  if (recipeExportStatus) {
+    recipeExportStatus.textContent = `Preparando ${targets.length} ${targets.length === 1 ? 'receta' : 'recetas'}…`;
+    recipeExportStatus.classList.remove('is-error','is-success');
+  }
+  try {
+    const entries = [];
+    let photoIssues = 0;
+    for (let index=0;index<targets.length;index+=1) {
+      const recipe = targets[index];
+      if (recipeExportStatus) recipeExportStatus.textContent = `Leyendo datos ${index + 1} de ${targets.length}: ${recipe.nombre}`;
+      let media = null;
+      if (recipe.foto) {
+        try {
+          media = await getRecipePhoto(recipe.id);
+          if (!(media?.fullBlob instanceof Blob)) photoIssues += 1;
+        } catch { photoIssues += 1; }
+      }
+      entries.push({recipe,media});
+    }
+    const result = await exportRecipesFile(entries,format,{
+      collectionName:collectionNameForScope(exportScope),
+      onProgress:progress => {
+        if (!recipeExportStatus) return;
+        if (progress.phase === 'package') {
+          recipeExportStatus.textContent = format === 'pdf' ? 'Construyendo PDF final…' : 'Empaquetando imágenes en ZIP…';
+          return;
+        }
+        const recipeName = progress.recipe?.nombre ? `: ${progress.recipe.nombre}` : '';
+        recipeExportStatus.textContent = `Generando ${progress.current} de ${progress.total}${recipeName}`;
+      }
+    });
+    const photoNote = photoIssues ? ` ${photoIssues} ${photoIssues === 1 ? 'fotografía no pudo leerse y usó placeholder.' : 'fotografías no pudieron leerse y usaron placeholder.'}` : '';
+    if (recipeExportStatus) {
+      recipeExportStatus.textContent = `${result.filename} generado correctamente.${photoNote}`;
+      recipeExportStatus.classList.add('is-success');
+    }
+    showToast(`${String(format).toUpperCase()} generado correctamente.${photoIssues ? ' Se usó placeholder donde la foto no estuvo disponible.' : ''}`);
+    if (exportScope === 'selected') {
+      recipeSelectionMode = false;
+      selectedRecipeIds.clear();
+      updateRecipeSelectionBar();
+      void renderRecipesLibrary();
+    }
+  } catch (error) {
+    if (recipeExportStatus) {
+      recipeExportStatus.textContent = error?.message || 'No fue posible exportar las recetas.';
+      recipeExportStatus.classList.add('is-error');
+    }
+    showToast(error?.message || 'No fue posible exportar las recetas.',{error:true});
+  } finally {
+    setRecipeExportBusy(false);
+    updateExportScopeUi();
+  }
 }
 
 function openRecipeDetail(recipeId,{replaceHash=false} = {}){
@@ -741,6 +965,8 @@ async function confirmRecipeDelete(){
   }
   try {
     recipes = saveRecipes(storage,recipes.filter(item => item.id !== recipe.id));
+    selectedRecipeIds.delete(recipe.id);
+    updateRecipeSelectionBar();
   } catch (error) {
     showToast(error?.message || 'No fue posible eliminar la receta.',{error:true});
     return;
@@ -861,7 +1087,7 @@ function renderCatalog(){
 }
 
 function setModalState(){
-  const anyOpen = (catalogModal && !catalogModal.hidden) || (deleteModal && !deleteModal.hidden) || (recipeDeleteModal && !recipeDeleteModal.hidden);
+  const anyOpen = (catalogModal && !catalogModal.hidden) || (deleteModal && !deleteModal.hidden) || (recipeDeleteModal && !recipeDeleteModal.hidden) || (recipeExportModal && !recipeExportModal.hidden);
   document.body.classList.toggle('modal-open',Boolean(anyOpen));
 }
 
@@ -1521,6 +1747,11 @@ document.addEventListener('click',event => {
     return;
   }
 
+  if (event.target.closest('[data-close-recipe-export]')) {
+    closeRecipeExportModal();
+    return;
+  }
+
   const toggle = event.target.closest('[data-toggle-base]');
   if (toggle){
     const base = toggle.dataset.toggleBase;
@@ -1537,6 +1768,12 @@ document.addEventListener('click',event => {
     return;
   }
 
+  const selectRecipe = event.target.closest('[data-select-recipe]');
+  if (selectRecipe){
+    toggleRecipeSelection(selectRecipe.dataset.selectRecipe,selectRecipe.checked);
+    return;
+  }
+
   const openSavedRecipe = event.target.closest('[data-open-saved-recipe]');
   if (openSavedRecipe){
     openRecipeDetail(openSavedRecipe.dataset.openSavedRecipe);
@@ -1546,6 +1783,12 @@ document.addEventListener('click',event => {
   const toggleSavedFavorite = event.target.closest('[data-toggle-recipe-favorite]');
   if (toggleSavedFavorite){
     toggleRecipeFavorite(toggleSavedFavorite.dataset.toggleRecipeFavorite);
+    return;
+  }
+
+  const exportRecipeButton = event.target.closest('[data-export-recipe]');
+  if (exportRecipeButton){
+    openRecipeExportModal(exportRecipeButton.dataset.exportRecipe);
     return;
   }
 
@@ -1614,6 +1857,24 @@ deleteConfirmBtn?.addEventListener('click',confirmDelete);
 recipeDeleteModalClose?.addEventListener('click',closeRecipeDeleteModal);
 recipeDeleteCancelBtn?.addEventListener('click',closeRecipeDeleteModal);
 recipeDeleteConfirmBtn?.addEventListener('click',()=>void confirmRecipeDelete());
+recipeExportModalClose?.addEventListener('click',closeRecipeExportModal);
+recipeExportCancelBtn?.addEventListener('click',closeRecipeExportModal);
+recipeLibraryExportBtn?.addEventListener('click',()=>openRecipeExportModal(null,{scope:selectedRecipeIds.size ? 'selected' : 'all'}));
+recipeSelectionCancelBtn?.addEventListener('click',cancelRecipeSelectionMode);
+recipeSelectionExportBtn?.addEventListener('click',()=>{
+  if (!selectedRecipeIds.size) { showToast('Marca al menos una receta.',{error:true}); return; }
+  openRecipeExportModal(null,{scope:'selected'});
+});
+recipeExportModal?.addEventListener('click',event => {
+  const scopeButton = event.target.closest('[data-export-scope]');
+  if (scopeButton) {
+    selectExportScope(scopeButton.dataset.exportScope);
+    return;
+  }
+  const formatButton = event.target.closest('[data-export-format]');
+  if (!formatButton) return;
+  void runRecipeExport(formatButton.dataset.exportFormat);
+});
 
 newRecipeForm?.addEventListener('submit',saveNewRecipe);
 addIngredientBtn?.addEventListener('click',()=>addIngredientRow({}));
@@ -1676,6 +1937,7 @@ mobileMenu?.addEventListener('click',()=> sidebar?.classList.contains('is-open')
 backdrop?.addEventListener('click',closeSidebar);
 window.addEventListener('keydown',event=>{
   if(event.key !== 'Escape') return;
+  if (recipeExportModal && !recipeExportModal.hidden) { closeRecipeExportModal(); return; }
   if (recipeDeleteModal && !recipeDeleteModal.hidden) { closeRecipeDeleteModal(); return; }
   if (deleteModal && !deleteModal.hidden) { closeDeleteModal(); return; }
   if (catalogModal && !catalogModal.hidden) { closeCatalogModal(); return; }

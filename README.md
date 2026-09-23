@@ -1,32 +1,29 @@
-# Barra de El Ágora del Sir — Final Hardened
+# Barra de El Ágora del Sir — Exportación Final Hardened
 
-Versión final 1.9.1 cerrada sobre la base funcional de la Etapa 8, sin agregar funciones nuevas ni alterar la identidad visual o las reglas de negocio.
+Versión 1.11.0 construida exclusivamente sobre la Etapa 1/2 de exportación. Completa la Etapa 2/2 sin reconstruir la aplicación ni alterar sus reglas de negocio.
 
-## Hardening final
-- Regresión de navegación y módulos principales.
-- CRUD y persistencia de catálogos y recetas.
-- Favoritas, orden A-Z/Z-A, bases dinámicas y ficha completa.
-- ALQUIMIA con numeración estable.
-- Fotografías optimizadas y persistentes en IndexedDB.
-- Respaldo/restauración JSON con validación y rollback.
-- PWA instalable con Service Worker, caché versionada y actualización manual.
-- Versión final sincronizada en `js/settings.js`, `service-worker.js`, `app-version.json` e interfaz.
-- Registro del Service Worker con `updateViaCache: none` y precarga del app shell forzada a red para evitar quedar atrapada en caché vieja.
-- Responsive para escritorio, iPad horizontal, iPad vertical y móvil sin scroll horizontal general.
-- Ajustes de foco, estado accesible de favoritas y cierre por Escape en confirmaciones de Configuración.
-- Sin logs de depuración ni dependencias nuevas.
+## Exportación final
+- Acción compacta **Exportar** con alcance: Esta receta, Seleccionadas y Todas.
+- Modo selección temporal con checkboxes, contador, cancelación y bloqueo contra exportación vacía.
+- PNG/JPG individual cuando solo hay una receta.
+- PNG/JPG múltiples dentro de un único ZIP local válido, sin CDN ni dependencia externa.
+- Resolución automática de colisiones de nombres de archivo sanitizados.
+- PDF individual o un único PDF multipágina vertical para varias recetas; cada receta comienza separada y puede continuar en páginas adicionales.
+- Orden A-Z estable para Seleccionadas y Todas usando el mismo comparador de la biblioteca.
+- Fotografía actual o placeholder; preparación interna para varias fotos preservada.
+- Regla **Al gusto** preservada para cantidad 0 y unidad vacía en todas las modalidades.
+- Estado de generación con conteo real de recetas, bloqueo de doble pulsación y recuperación de UI ante éxito o error.
+- Manejo de fotografías no disponibles, errores de imagen/ZIP/PDF y fallos de memoria detectables.
 
-## Ajuste 1.9.1 — Ingredientes “Al gusto”
-- La cantidad `0` es válida para un ingrediente.
-- Al usar `0`, la unidad se limpia y queda desactivada en el formulario.
-- La ficha muestra `Al gusto` en lugar de `0`.
-- Se conserva al crear, editar, duplicar y respaldar/restaurar mediante JSON.
-
-## Persistencia
-- Recetas, catálogos y configuración: LocalStorage.
-- Fotografías optimizadas y miniaturas: IndexedDB.
-- Actualizar la PWA no borra ni reemplaza esos almacenes.
+## Persistencia y regresión
+- La selección no se guarda como dato operativo.
+- Exportar no modifica recetas, favoritas, catálogos, fotografías ni configuración.
+- Recetas, catálogos y configuración continúan en LocalStorage.
+- Fotografías y miniaturas continúan en IndexedDB.
+- Respaldo/restauración JSON conserva el esquema 1.
+- Service Worker y caché actualizados a 1.11.0 conservando los almacenes locales.
+- Sin dependencias nuevas, sin CDN y sin logs de depuración.
 
 ## Versión
-- App/PWA: 1.9.1
+- App/PWA: 1.11.0
 - Esquema de respaldo JSON: 1

@@ -136,6 +136,7 @@
             <span aria-hidden="true">◇</span>
             <select id="libraryCategoryFilter" aria-label="Filtrar recetas por categoría"><option value="all">Categoría</option></select>
           </label>
+          <button class="secondary-action library-export-button" id="recipeLibraryExportBtn" type="button"><span aria-hidden="true">⇩</span>Exportar</button>
           <button class="primary-button" data-view="nueva-receta" type="button"><span aria-hidden="true">＋</span>Nueva receta</button>
         </div>
 
@@ -144,6 +145,13 @@
             <h2 id="recipeLibraryTitle" class="sr-only">Todas las recetas</h2>
             <div></div>
             <div class="section-kicker"><span></span>Todas las recetas en orden alfabético</div>
+          </div>
+          <div class="recipe-selection-bar" id="recipeSelectionBar" hidden>
+            <div><strong id="recipeSelectionCount">0 seleccionadas</strong><span>Marca las recetas que quieras exportar.</span></div>
+            <div class="recipe-selection-actions">
+              <button class="secondary-action" id="recipeSelectionCancelBtn" type="button">Cancelar</button>
+              <button class="primary-button" id="recipeSelectionExportBtn" type="button" disabled>Exportar seleccionadas</button>
+            </div>
           </div>
           <div id="recipeLibraryGroups" class="recipe-library-groups" aria-live="polite"></div>
           <div id="recipeLibraryEmpty" class="empty-state stage7-empty" hidden>
@@ -288,7 +296,7 @@
             <div class="pwa-status-list" aria-live="polite">
               <div class="status-row"><span class="status-icon is-ok" aria-hidden="true">✓</span><span>Estado de instalación</span><strong id="pwaInstallStatus">Comprobando…</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">◈</span><span>Service Worker</span><strong id="pwaSwStatus">Comprobando…</strong></div>
-              <div class="status-row"><span class="status-icon" aria-hidden="true">#</span><span>Versión actual</span><strong id="pwaCurrentVersion">v1.9.1</strong></div>
+              <div class="status-row"><span class="status-icon" aria-hidden="true">#</span><span>Versión actual</span><strong id="pwaCurrentVersion">v1.11.0</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">⌕</span><span>Última búsqueda</span><strong id="pwaLastSearch">Nunca</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">◷</span><span>Última actualización</span><strong id="pwaLastUpdate">Nunca</strong></div>
             </div>
@@ -557,6 +565,31 @@
       <div class="modal-actions">
         <button class="secondary-action modal-secondary" id="recipeDeleteCancelBtn" type="button">Cancelar</button>
         <button class="danger-button" id="recipeDeleteConfirmBtn" type="button">Eliminar</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-layer" id="recipeExportModal" hidden>
+    <div class="modal-backdrop" data-close-recipe-export></div>
+    <section class="catalog-modal-card export-modal-card" role="dialog" aria-modal="true" aria-labelledby="recipeExportTitle">
+      <button class="modal-close" id="recipeExportModalClose" type="button" aria-label="Cerrar">×</button>
+      <p class="catalog-kicker">Exportación de recetas</p>
+      <h2 id="recipeExportTitle">Exportar</h2>
+      <p class="export-modal-copy">Elige qué recetas exportar y luego el formato. La ficha conserva el diseño aprobado y no incluye controles operativos.</p>
+      <div class="export-scope-grid" aria-label="Alcance de la exportación">
+        <button class="export-scope-button" type="button" data-export-scope="this"><strong>Esta receta</strong><span>Solo la ficha abierta</span></button>
+        <button class="export-scope-button" type="button" data-export-scope="selected"><strong>Seleccionadas</strong><span id="recipeExportSelectedHint">Activa el modo selección</span></button>
+        <button class="export-scope-button" type="button" data-export-scope="all"><strong>Todas</strong><span>Toda la biblioteca A-Z</span></button>
+      </div>
+      <p class="export-format-label">Formato</p>
+      <div class="export-format-grid" aria-label="Formatos de exportación">
+        <button class="export-format-button" type="button" data-export-format="png"><strong>PNG</strong><span>Imagen; varias se empaquetan en ZIP</span></button>
+        <button class="export-format-button" type="button" data-export-format="jpg"><strong>JPG</strong><span>Imagen; varias se empaquetan en ZIP</span></button>
+        <button class="export-format-button" type="button" data-export-format="pdf"><strong>PDF</strong><span>Uno solo; varias recetas en páginas separadas</span></button>
+      </div>
+      <p class="export-modal-status" id="recipeExportStatus" role="status" aria-live="polite">Elige el alcance y el formato.</p>
+      <div class="modal-actions export-modal-actions">
+        <button class="secondary-action modal-secondary" id="recipeExportCancelBtn" type="button">Cancelar</button>
       </div>
     </section>
   </div>
