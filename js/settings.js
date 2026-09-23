@@ -6,7 +6,7 @@ import {
   recipePhotoRecordFromEntries, photoEntryFromProcessed, buildPhotoReferences
 } from './media.js';
 
-export const APP_VERSION = '1.14.4';
+export const APP_VERSION = '1.14.5';
 export const BACKUP_SCHEMA_VERSION = 1;
 const SETTINGS_KEY = 'settings.v1';
 const RUNTIME_KEY = 'runtime.pwa.v1';

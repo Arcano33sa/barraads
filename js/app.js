@@ -125,22 +125,9 @@ const photoLightboxPrev = document.getElementById('photoLightboxPrev');
 const photoLightboxNext = document.getElementById('photoLightboxNext');
 const photoLightboxClose = document.getElementById('photoLightboxClose');
 
-const DEMO_RECIPES = [
-  { id:'margarita', name:'Margarita', base:'Tequila', details:'Tequila, triple sec, jugo de lima.', search:'tequila triple sec lima cítrico agitar shaker', thumb:'thumb-margarita' },
-  { id:'paloma', name:'Paloma', base:'Tequila', details:'Tequila, refresco de toronja, jugo de lima.', search:'tequila toronja lima cítrico construir highball', thumb:'thumb-paloma' },
-  { id:'rito-7', name:'Rito 7', base:'Tequila', details:'Tequila, licor de naranja, jugo de lima, toque herbal.', search:'tequila licor naranja lima herbal construir', thumb:'thumb-rito' },
-  { id:'old-fashioned', name:'Old Fashioned', base:'Whisky', details:'Whisky, azúcar, bitters.', search:'whisky azúcar bitters remover rocks', thumb:'thumb-old-fashioned' },
-  { id:'whisky-sour', name:'Whisky Sour', base:'Whisky', details:'Whisky, jugo de limón, jarabe simple, clara de huevo.', search:'whisky limón jarabe clara huevo agitar shaker', thumb:'thumb-whisky-sour' },
-  { id:'daiquiri', name:'Daiquiri', base:'Ron', details:'Ron, jugo de lima, jarabe simple.', search:'ron lima jarabe simple agitar coupe', thumb:'thumb-daiquiri' },
-  { id:'mojito', name:'Mojito', base:'Ron', details:'Ron, lima, menta, azúcar, agua con gas.', search:'ron lima menta azúcar agua gas construir highball', thumb:'thumb-mojito' },
-  { id:'pina-colada', name:'Piña Colada', base:'Ron', details:'Ron, crema de coco, jugo de piña.', search:'ron crema coco piña licuar tropical', thumb:'thumb-pina-colada' },
-  { id:'cosmopolitan', name:'Cosmopolitan', base:'Vodka', details:'Vodka, triple sec, arándano, lima.', search:'vodka triple sec arándano lima agitar martini', thumb:'thumb-cosmopolitan' },
-  { id:'moscow-mule', name:'Moscow Mule', base:'Vodka', details:'Vodka, ginger beer, lima.', search:'vodka ginger beer jengibre lima construir mule', thumb:'thumb-moscow-mule' }
-];
-
-const BASE_ORDER = ['Tequila', 'Whisky', 'Ron', 'Vodka'];
-const FAVORITES = new Set();
-const COLLAPSED = new Set(['Vodka']);
+// Inicio se alimenta exclusivamente de las recetas reales guardadas.
+// No mantener recetas/base demo aquí: las bases visibles se derivan de recipes.
+const COLLAPSED = new Set();
 
 const BASE_ICONS = {
   Tequila: '<svg viewBox="0 0 32 32"><path d="M16 27V13m0 0-5-8m5 8 5-8M16 13 8 8m8 5 8-5M16 13 5 13m11 0 11 0M16 13 9 19m7-6 7 6"/></svg>',
@@ -229,6 +216,7 @@ function showView(viewName,{updateHash=true}={}){
     ? 'Barra de El Ágora del Sir'
     : `Barra de El Ágora del Sir — ${titleFor(actualView)}`;
 
+  if (actualView === 'inicio') void renderRecipes();
   if (actualView === 'catalogo') renderCatalog();
   if (actualView === 'configuracion') refreshSettingsView();
   if (actualView === 'recetas') void renderRecipesLibrary();
@@ -246,57 +234,79 @@ function navigate(viewName){
   showView(viewName);
 }
 
-function recipeRow(recipe){
-  const favorite = FAVORITES.has(recipe.id);
+function homeBaseList(){
+  return uniqueSorted(recipes.map(recipe => recipe.basePrincipal).filter(Boolean));
+}
+
+function syncHomeBaseFilter(){
+  if (!baseFilter) return [];
+  const bases = homeBaseList();
+  const previous = baseFilter.value || 'all';
+  baseFilter.innerHTML = '<option value="all">Todas las bases</option>' + bases
+    .map(base => `<option value="${escapeHtml(base)}">${escapeHtml(base)}</option>`)
+    .join('');
+  baseFilter.value = bases.includes(previous) ? previous : 'all';
+  return bases;
+}
+
+function recipeRow(recipe,thumbUrls){
+  const favorite = Boolean(recipe.favorita);
   return `
     <article class="recipe-row" data-recipe-id="${escapeHtml(recipe.id)}">
-      <div class="recipe-thumb ${escapeHtml(recipe.thumb)}" aria-hidden="true"></div>
-      <div class="recipe-copy">
-        <strong>${escapeHtml(recipe.name)}</strong>
-        <small>${escapeHtml(recipe.details)}</small>
-      </div>
-      <button class="recipe-action favorite-button${favorite ? ' is-favorite' : ''}" type="button" data-favorite="${escapeHtml(recipe.id)}" aria-label="${favorite ? 'Quitar de favoritas' : 'Marcar como favorita'}" aria-pressed="${favorite ? 'true' : 'false'}">
+      ${recipeThumbMarkup(recipe,thumbUrls,{libraryStatic:true})}
+      <button class="recipe-copy home-recipe-main" type="button" data-open-saved-recipe="${escapeHtml(recipe.id)}" aria-label="Abrir ${escapeHtml(recipe.nombre)}">
+        <strong>${escapeHtml(recipe.nombre)}</strong>
+        <small>${escapeHtml(recipeIngredientSummary(recipe))}</small>
+      </button>
+      <button class="recipe-action favorite-button${favorite ? ' is-favorite' : ''}" type="button" data-toggle-recipe-favorite="${escapeHtml(recipe.id)}" aria-label="${favorite ? 'Quitar de favoritas' : 'Marcar como favorita'}" aria-pressed="${favorite ? 'true' : 'false'}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.9a5.2 5.2 0 0 0-7.4 0L12 6.3l-1.4-1.4a5.2 5.2 0 1 0-7.4 7.4L12 21l8.8-8.7a5.2 5.2 0 0 0 0-7.4Z"/></svg>
       </button>
-      <button class="recipe-action open-button" type="button" data-open-recipe="${escapeHtml(recipe.id)}" aria-label="Ver ${escapeHtml(recipe.name)}">
+      <button class="recipe-action open-button" type="button" data-open-saved-recipe="${escapeHtml(recipe.id)}" aria-label="Ver ${escapeHtml(recipe.nombre)}">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
       </button>
     </article>`;
 }
 
-function renderRecipes(){
+async function renderRecipes(){
   if (!baseGroups || !recipeSearch || !baseFilter) return;
-  const query = recipeSearch.value.trim().toLocaleLowerCase('es');
+  const bases = syncHomeBaseFilter();
+  const query = normalizeSearchText(recipeSearch.value);
   const selectedBase = baseFilter.value;
 
-  const filtered = DEMO_RECIPES.filter(recipe => {
-    const matchesBase = selectedBase === 'all' || recipe.base === selectedBase;
-    const haystack = `${recipe.name} ${recipe.base} ${recipe.details} ${recipe.search}`.toLocaleLowerCase('es');
-    return matchesBase && (!query || haystack.includes(query));
-  });
+  const filtered = recipes.filter(recipe => {
+    const matchesBase = selectedBase === 'all' || recipe.basePrincipal === selectedBase;
+    return matchesBase && (!query || recipeSearchHaystack(recipe).includes(query));
+  }).sort((a,b) => stableRecipeCompare(a,b));
 
-  const groups = BASE_ORDER
-    .map(base => ({base, recipes:filtered.filter(recipe => recipe.base === base).sort((a,b)=>naturalCompare(a.name,b.name))}))
+  const thumbs = await loadRecipeThumbUrls(filtered);
+  const groups = bases
+    .map(base => ({base,recipes:filtered.filter(recipe => recipe.basePrincipal === base)}))
     .filter(group => group.recipes.length);
 
-  baseGroups.innerHTML = groups.map(({base,recipes}) => {
+  baseGroups.innerHTML = groups.map(({base,recipes:items}) => {
     const isCollapsed = !query && selectedBase === 'all' && COLLAPSED.has(base);
-    const plural = recipes.length === 1 ? 'receta' : 'recetas';
+    const plural = items.length === 1 ? 'receta' : 'recetas';
     return `
       <section class="base-group${isCollapsed ? ' is-collapsed' : ''}" data-base-group="${escapeHtml(base)}">
         <button class="base-header" type="button" data-toggle-base="${escapeHtml(base)}" aria-expanded="${isCollapsed ? 'false' : 'true'}">
-          <span class="base-symbol">${BASE_ICONS[base]}</span>
+          <span class="base-symbol">${baseSymbolMarkup(base)}</span>
           <span class="base-name">Base: <strong>${escapeHtml(base)}</strong></span>
-          <span class="base-count">${recipes.length} ${plural}</span>
+          <span class="base-count">${items.length} ${plural}</span>
           <svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 14.5 5-5 5 5"/></svg>
         </button>
-        <div class="recipe-list">${recipes.map(recipeRow).join('')}</div>
+        <div class="recipe-list">${items.map(recipe => recipeRow(recipe,thumbs.get(recipe.id))).join('')}</div>
       </section>`;
   }).join('');
 
-  if (emptyState) emptyState.hidden = groups.length > 0;
+  if (emptyState) {
+    emptyState.hidden = groups.length > 0;
+    if (!groups.length) {
+      emptyState.innerHTML = recipes.length
+        ? '<strong>No hay coincidencias.</strong><span>Prueba otra búsqueda o cambia la base seleccionada.</span>'
+        : '<strong>Todavía no hay recetas creadas.</strong><span>Usa “Nueva receta” y aparecerán aquí organizadas por su base principal.</span>';
+    }
+  }
 }
-
 
 function revokeSavedRecipeThumbUrls(){
   savedRecipeThumbUrls.forEach(url => URL.revokeObjectURL(url));
@@ -557,6 +567,7 @@ async function renderFavorites(){
 
 function renderActiveStage7View(){
   const active = document.querySelector('.view.is-visible')?.dataset.viewPanel;
+  if (active === 'inicio') void renderRecipes();
   if (active === 'recetas') void renderRecipesLibrary();
   if (active === 'por-base') void renderBaseLibrary();
   if (active === 'favoritas') void renderFavorites();
@@ -1238,13 +1249,7 @@ async function removeSavedRecipePhoto(recipeId){
 }
 
 function populateBaseFilter(){
-  if (!baseFilter) return;
-  BASE_ORDER.forEach(base => {
-    const option = document.createElement('option');
-    option.value = base;
-    option.textContent = base;
-    baseFilter.append(option);
-  });
+  syncHomeBaseFilter();
 }
 
 function getActiveDefinition(){
@@ -2069,14 +2074,6 @@ document.addEventListener('click',event => {
     return;
   }
 
-  const favorite = event.target.closest('[data-favorite]');
-  if (favorite){
-    const id = favorite.dataset.favorite;
-    if (FAVORITES.has(id)) FAVORITES.delete(id); else FAVORITES.add(id);
-    renderRecipes();
-    return;
-  }
-
   const selectRecipe = event.target.closest('[data-select-recipe]');
   if (selectRecipe){
     toggleRecipeSelection(selectRecipe.dataset.selectRecipe,selectRecipe.checked);
@@ -2175,11 +2172,6 @@ document.addEventListener('click',event => {
     return;
   }
 
-  const openRecipe = event.target.closest('[data-open-recipe]');
-  if (openRecipe) {
-    const saved = recipes.find(recipe => recipe.id === openRecipe.dataset.openRecipe);
-    if (saved) openRecipeDetail(saved.id); else navigate('recetas');
-  }
 });
 
 catalogForm?.addEventListener('submit',event => {
