@@ -166,6 +166,8 @@ let savedRecipeThumbUrls = [];
 let activeRecipeGalleryUrls = new Map();
 let activeRecipeId = null;
 let detailPhotoObjectUrls = [];
+let detailPhotoFallbackUrls = [];
+let detailRenderToken = 0;
 let lightboxObjectUrls = [];
 let lightboxIndex = 0;
 let lightboxRecipeId = null;
@@ -394,16 +396,24 @@ function baseSymbolMarkup(base){
   return `<span class="base-symbol-letter">${escapeHtml(initial)}</span>`;
 }
 
-function recipeThumbMarkup(recipe,urls){
+function recipeThumbMarkup(recipe,urls,{libraryStatic=false}={}){
   const safeUrls = Array.isArray(urls) ? urls.filter(Boolean) : (urls ? [urls] : []);
   if (safeUrls.length) {
     const total = safeUrls.length;
-    return `<div class="stage7-recipe-thumb recipe-photo-gallery" data-recipe-gallery="${escapeHtml(recipe.id)}" data-gallery-index="0">
-      <button class="gallery-photo-trigger" type="button" data-open-photo-viewer="${escapeHtml(recipe.id)}" aria-label="Ver fotografía de ${escapeHtml(recipe.nombre)} en grande">
+    const staticClass = libraryStatic ? ' is-library-static' : '';
+    const triggerAttribute = libraryStatic
+      ? `data-open-saved-recipe="${escapeHtml(recipe.id)}"`
+      : `data-open-photo-viewer="${escapeHtml(recipe.id)}"`;
+    const triggerLabel = libraryStatic
+      ? `Abrir ficha de ${escapeHtml(recipe.nombre)}`
+      : `Ver fotografía de ${escapeHtml(recipe.nombre)} en grande`;
+    return `<div class="stage7-recipe-thumb recipe-photo-gallery${staticClass}" data-recipe-gallery="${escapeHtml(recipe.id)}" data-gallery-index="0">
+      <button class="gallery-photo-trigger" type="button" ${triggerAttribute} aria-label="${triggerLabel}">
         <img src="${escapeHtml(safeUrls[0])}" alt="Fotografía 1 de ${total} de ${escapeHtml(recipe.nombre)}">
         <span class="gallery-fallback" aria-hidden="true">◇</span>
       </button>
-      ${total > 1 ? `<button class="gallery-nav gallery-nav-prev" type="button" data-gallery-shift="-1" aria-label="Fotografía anterior">‹</button><button class="gallery-nav gallery-nav-next" type="button" data-gallery-shift="1" aria-label="Fotografía siguiente">›</button><span class="gallery-position" aria-live="polite">1 / ${total}</span>` : ''}
+      ${!libraryStatic && total > 1 ? `<button class="gallery-nav gallery-nav-prev" type="button" data-gallery-shift="-1" aria-label="Fotografía anterior">‹</button><button class="gallery-nav gallery-nav-next" type="button" data-gallery-shift="1" aria-label="Fotografía siguiente">›</button>` : ''}
+      ${total > 1 ? `<span class="gallery-position" aria-live="polite">1 / ${total}</span>` : ''}
     </div>`;
   }
   const initial = String(recipe.nombre || '?').trim().charAt(0).toLocaleUpperCase('es') || '?';
@@ -418,13 +428,13 @@ function categoryTone(category){
   return 'is-cool';
 }
 
-function recipeLibraryRow(recipe,thumbUrl,{favoriteContext=false}={}){
+function recipeLibraryRow(recipe,thumbUrl,{favoriteContext=false,libraryStatic=false}={}){
   const selectable = recipeSelectionMode && !favoriteContext;
   const selected = selectable && selectedRecipeIds.has(recipe.id);
   return `
     <article class="stage7-recipe-row${selectable ? ' is-selection-mode' : ''}${selected ? ' is-selected' : ''}" data-stage7-recipe-id="${escapeHtml(recipe.id)}">
       ${selectable ? `<label class="recipe-select-control" aria-label="Seleccionar ${escapeHtml(recipe.nombre)}"><input type="checkbox" data-select-recipe="${escapeHtml(recipe.id)}" ${selected ? 'checked' : ''}></label>` : ''}
-      ${recipeThumbMarkup(recipe,thumbUrl)}
+      ${recipeThumbMarkup(recipe,thumbUrl,{libraryStatic})}
       <button class="stage7-recipe-main" type="button" data-open-saved-recipe="${escapeHtml(recipe.id)}" aria-label="Abrir ${escapeHtml(recipe.nombre)}">
         <strong>${escapeHtml(recipe.nombre)}</strong>
         <small>${escapeHtml(recipeIngredientSummary(recipe))}</small>
@@ -474,7 +484,7 @@ async function renderRecipesLibrary(){
   recipeLibraryGroups.innerHTML = entries.map(([letter,items]) => `
     <section class="alphabet-group">
       <header><strong>${escapeHtml(letter)}</strong><span></span><small>${items.length} ${items.length === 1 ? 'receta' : 'recetas'}</small></header>
-      <div>${items.map(recipe => recipeLibraryRow(recipe,thumbs.get(recipe.id))).join('')}</div>
+      <div>${items.map(recipe => recipeLibraryRow(recipe,thumbs.get(recipe.id),{libraryStatic:true})).join('')}</div>
     </section>`).join('');
   recipeLibraryEmpty.hidden = filtered.length > 0;
   updateRecipeSelectionBar();
@@ -553,8 +563,25 @@ function renderActiveStage7View(){
 }
 
 function releaseDetailPhotoUrl(){
-  detailPhotoObjectUrls.forEach(url => URL.revokeObjectURL(url));
+  detailPhotoObjectUrls.forEach(url => { if (url) URL.revokeObjectURL(url); });
+  detailPhotoFallbackUrls.forEach(url => { if (url) URL.revokeObjectURL(url); });
   detailPhotoObjectUrls = [];
+  detailPhotoFallbackUrls = [];
+}
+
+function createPhotoObjectUrl(blob){
+  if (!(blob instanceof Blob) || blob.size <= 0) return null;
+  try { return URL.createObjectURL(blob); } catch { return null; }
+}
+
+function detailPhotoSourceAt(index){
+  return detailPhotoObjectUrls[index] || detailPhotoFallbackUrls[index] || null;
+}
+
+function detailPhotoFallbackAt(index){
+  const full = detailPhotoObjectUrls[index] || null;
+  const fallback = detailPhotoFallbackUrls[index] || null;
+  return full && fallback && fallback !== full ? fallback : null;
 }
 
 function releaseLightboxUrls(){
@@ -574,18 +601,25 @@ function setGalleryIndex(gallery,index){
   const urls = isDetailGallery && recipeId === activeRecipeId
     ? detailPhotoObjectUrls
     : (activeRecipeGalleryUrls.get(recipeId) || []);
-  if (!urls.length) return;
-  const next = circularIndex(index,urls.length);
+  const total = isDetailGallery && recipeId === activeRecipeId
+    ? Math.max(detailPhotoObjectUrls.length,detailPhotoFallbackUrls.length)
+    : urls.length;
+  if (!total) return;
+  const next = circularIndex(index,total);
   gallery.dataset.galleryIndex = String(next);
   const img = gallery.querySelector('img');
   const position = gallery.querySelector('.gallery-position');
   gallery.classList.remove('is-broken');
   if (img) {
-    img.src = urls[next];
+    const source = isDetailGallery && recipeId === activeRecipeId ? detailPhotoSourceAt(next) : urls[next];
+    const fallback = isDetailGallery && recipeId === activeRecipeId ? detailPhotoFallbackAt(next) : null;
+    if (source) img.src = source; else img.removeAttribute('src');
+    if (fallback) img.dataset.fallbackSrc = fallback; else delete img.dataset.fallbackSrc;
     const recipe = recipes.find(item => item.id === recipeId);
-    img.alt = `Fotografía ${next + 1} de ${urls.length} de ${recipe?.nombre || 'la receta'}`;
+    img.alt = `Fotografía ${next + 1} de ${total} de ${recipe?.nombre || 'la receta'}`;
+    if (!source) gallery.classList.add('is-broken');
   }
-  if (position) position.textContent = `${next + 1} / ${urls.length}`;
+  if (position) position.textContent = `${next + 1} / ${total}`;
 }
 
 function shiftGallery(gallery,delta){
@@ -693,9 +727,10 @@ function chipList(values,emptyText = 'No especificado'){
 
 async function renderRecipeDetail(recipeId){
   if (!recipeDetailShell) return;
-  releaseDetailPhotoUrl();
+  const renderToken = ++detailRenderToken;
   const recipe = recipes.find(item => item.id === recipeId);
   if (!recipe) {
+    releaseDetailPhotoUrl();
     recipeDetailShell.innerHTML = `
       <div class="recipe-detail-missing">
         <span aria-hidden="true">◇</span>
@@ -708,12 +743,20 @@ async function renderRecipeDetail(recipeId){
 
   let detailPhotos = [];
   try { detailPhotos = await getRecipePhotos(recipe.id); } catch { detailPhotos = []; }
-  detailPhotoObjectUrls = detailPhotos.map(photo => {
-    const blob = photo?.fullBlob instanceof Blob ? photo.fullBlob : null;
-    if (!blob) return null;
-    try { return URL.createObjectURL(blob); } catch { return null; }
-  }).filter(Boolean);
-  const photoBlob = detailPhotoObjectUrls.length ? detailPhotos[0]?.fullBlob : null;
+  const nextFullUrls = detailPhotos.map(photo => createPhotoObjectUrl(photo?.fullBlob));
+  const nextFallbackUrls = detailPhotos.map(photo => createPhotoObjectUrl(photo?.thumbnailBlob));
+  if (renderToken !== detailRenderToken || activeRecipeId !== recipe.id) {
+    nextFullUrls.forEach(url => { if (url) URL.revokeObjectURL(url); });
+    nextFallbackUrls.forEach(url => { if (url) URL.revokeObjectURL(url); });
+    return;
+  }
+  releaseDetailPhotoUrl();
+  detailPhotoObjectUrls = nextFullUrls;
+  detailPhotoFallbackUrls = nextFallbackUrls;
+  const detailPhotoCount = detailPhotos.length;
+  const primaryPhotoUrl = detailPhotoSourceAt(0);
+  const primaryFallbackUrl = detailPhotoFallbackAt(0);
+  const hasStoredPhotos = detailPhotoCount > 0;
 
   const secondaryBases = recipe.basesSecundarias || [];
   const alchemy = [...(recipe.alquimia || [])].sort((a,b) => Number(a.orden || 0) - Number(b.orden || 0));
@@ -749,8 +792,8 @@ async function renderRecipeDetail(recipeId){
 
     <article class="recipe-detail-card">
       <div class="recipe-detail-hero">
-        <div class="recipe-detail-photo${photoBlob ? ' recipe-photo-gallery' : ' is-empty'}"${photoBlob ? ` data-recipe-gallery="${escapeHtml(recipe.id)}" data-gallery-index="0"` : ''}>
-          ${photoBlob ? `<button class="gallery-photo-trigger detail-gallery-trigger" type="button" data-open-photo-viewer="${escapeHtml(recipe.id)}" aria-label="Ver fotografía de ${escapeHtml(recipe.nombre)} en grande"><img src="${escapeHtml(detailPhotoObjectUrls[0])}" alt="Fotografía 1 de ${detailPhotoObjectUrls.length} de ${escapeHtml(recipe.nombre)}"><span class="gallery-fallback" aria-hidden="true">◇</span></button>${detailPhotoObjectUrls.length > 1 ? `<button class="gallery-nav gallery-nav-prev detail-gallery-nav" type="button" data-gallery-shift="-1" aria-label="Fotografía anterior">‹</button><button class="gallery-nav gallery-nav-next detail-gallery-nav" type="button" data-gallery-shift="1" aria-label="Fotografía siguiente">›</button><span class="gallery-position detail-gallery-position" aria-live="polite">1 / ${detailPhotoObjectUrls.length}</span>` : ''}` : `<div class="detail-photo-placeholder"><span aria-hidden="true">◇</span><strong>Sin fotografía</strong><small>La receta conserva toda su información.</small></div>`}
+        <div class="recipe-detail-photo${hasStoredPhotos ? ` recipe-photo-gallery${primaryPhotoUrl ? '' : ' is-broken'}` : ' is-empty'}"${hasStoredPhotos ? ` data-recipe-gallery="${escapeHtml(recipe.id)}" data-gallery-index="0"` : ''}>
+          ${hasStoredPhotos ? `<button class="gallery-photo-trigger detail-gallery-trigger" type="button" data-open-photo-viewer="${escapeHtml(recipe.id)}" aria-label="Ver fotografía de ${escapeHtml(recipe.nombre)} en grande"><img${primaryPhotoUrl ? ` src="${escapeHtml(primaryPhotoUrl)}"` : ''}${primaryFallbackUrl ? ` data-fallback-src="${escapeHtml(primaryFallbackUrl)}"` : ''} alt="Fotografía 1 de ${detailPhotoCount} de ${escapeHtml(recipe.nombre)}"><span class="gallery-fallback" aria-hidden="true">◇</span></button>${detailPhotoCount > 1 ? `<button class="gallery-nav gallery-nav-prev detail-gallery-nav" type="button" data-gallery-shift="-1" aria-label="Fotografía anterior">‹</button><button class="gallery-nav gallery-nav-next detail-gallery-nav" type="button" data-gallery-shift="1" aria-label="Fotografía siguiente">›</button><span class="gallery-position detail-gallery-position" aria-live="polite">1 / ${detailPhotoCount}</span>` : ''}` : `<div class="detail-photo-placeholder"><span aria-hidden="true">◇</span><strong>Sin fotografía</strong><small>La receta conserva toda su información.</small></div>`}
         </div>
         <div class="recipe-detail-intro">
           <p class="detail-eyebrow">Ficha completa de receta</p>
@@ -2259,6 +2302,13 @@ document.addEventListener('error',event => {
   if (!(img instanceof HTMLImageElement)) return;
   const gallery = img.closest('[data-recipe-gallery]');
   if (gallery) {
+    const fallback = img.dataset.fallbackSrc || '';
+    if (fallback && img.src !== fallback) {
+      delete img.dataset.fallbackSrc;
+      gallery.classList.remove('is-broken');
+      img.src = fallback;
+      return;
+    }
     gallery.classList.add('is-broken');
     return;
   }

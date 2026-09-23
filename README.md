@@ -1,15 +1,15 @@
-# Barra de El Ágora del Sir — Fotografías múltiples — Final Hardened
+# Barra de El Ágora del Sir — Corrección de fotografías — Final Hardened
 
-Versión 1.14.1 construida exclusivamente sobre `Barra_Agora_FotosMultiples_Etapa2_Galeria.zip`.
+Versión 1.14.3 construida exclusivamente sobre `Barra_Agora_FotosFix_Etapa1_FichaPrincipal.zip`.
 
 ## Cierre final
 
-- La primera fotografía sigue siendo la principal en Recetas, Por Base, Favoritas, ficha, miniaturas y exportación.
-- Galería y visor conservan navegación circular, contador, X, Escape, teclado y comportamiento táctil.
-- JSON respalda y restaura cero, una o múltiples fotografías conservando orden y compatibilidad con respaldos antiguos de una sola foto.
-- La restauración valida antes de reemplazar datos y mantiene rollback si falla la escritura local.
-- Exportación individual, seleccionadas y todas conserva la ficha aprobada y usa solo la foto principal; si esa foto no puede decodificarse, intenta temporalmente la siguiente válida sin cambiar el orden guardado; si ninguna sirve, usa placeholder.
-- “Al gusto” permanece activo para cantidad 0 sin unidad en ficha y exportaciones.
-- Service Worker/cache actualizado a v1.14.1, sin dependencias CDN y conservando datos locales durante actualización.
-- Visor grande corregido: la fotografía se muestra completa con `object-fit: contain`, centrada y sin recorte por tamaño de pantalla.
-- Sin selector manual de principal, sin reordenamiento de fotos y sin rediseño de la ficha exportada.
+- RECETAS / BIBLIOTECA muestra únicamente la fotografía principal (foto 1) en cada miniatura, sin flechas de galería.
+- Cuando existen varias fotografías, la Biblioteca conserva un contador compacto `1 / N` únicamente informativo; con una sola foto el contador se oculta.
+- Tocar la miniatura de Biblioteca abre la Ficha de receta, que siempre inicia en foto 1.
+- El chevron derecho de la fila, favorito, menú de acciones, etiquetas, nombre y resumen permanecen intactos.
+- Ficha y visor conservan navegación completa entre fotografías, contador, teclado, touch, responsive y visor con `object-fit: contain`.
+- La primera fotografía sigue siendo la principal; al eliminarla, la siguiente ocupa su lugar según la lógica existente.
+- Por Base y Favoritas mantienen su comportamiento previo, evitando ampliar el cambio fuera de la Biblioteca principal.
+- JSON y exportación conservan orden, foto principal, compatibilidad con múltiples fotos y comportamiento de “Al gusto”.
+- Service Worker/cache actualizado a v1.14.3, sin dependencias CDN y sin limpieza de datos locales ni IndexedDB.

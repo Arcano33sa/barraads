@@ -1,5 +1,5 @@
 {
-  "version": "1.14.1",
+  "version": "1.14.3",
   "schemaVersion": 1,
-  "notes": "Ajuste responsive del visor de fotografías: imagen completa sin recorte, proporción original conservada y centrado robusto en iPad, computadora, móvil y PWA."
+  "notes": "Biblioteca de Recetas simplificada: miniatura fija en foto principal, sin flechas de galería, contador compacto solo para múltiples fotos y acceso directo a la Ficha; galería completa permanece en Ficha y visor."
 }
