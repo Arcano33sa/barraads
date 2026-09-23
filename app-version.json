@@ -1,5 +1,5 @@
 {
-  "version": "1.14.0",
+  "version": "1.14.1",
   "schemaVersion": 1,
-  "notes": "Fotografías múltiples final: JSON compatible con respaldos antiguos y múltiples fotos, exportación siempre desde la primera foto con fallback temporal seguro, PWA/offline y hardening final."
+  "notes": "Ajuste responsive del visor de fotografías: imagen completa sin recorte, proporción original conservada y centrado robusto en iPad, computadora, móvil y PWA."
 }

@@ -1,4 +1,4 @@
-const APP_VERSION = '1.14.0';
+const APP_VERSION = '1.14.1';
 const CACHE_NAME = `agora-sir-${APP_VERSION}`;
 const APP_SHELL = [
   './',
