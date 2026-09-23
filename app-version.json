@@ -1,5 +1,5 @@
 {
-  "version": "1.14.5",
+  "version": "1.14.6",
   "schemaVersion": 1,
-  "notes": "Inicio: eliminadas recetas y bases demo heredadas. Por Base ahora muestra únicamente recetas reales guardadas, agrupadas por su base principal, con acceso a Ficha y fotografías reales."
+  "notes": "Encabezado: eliminados los placeholders sin función de Notificaciones, avatar S y perfil Sir con flecha. Sin cambios en navegación, datos ni lógica de negocio."
 }
