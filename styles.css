@@ -360,6 +360,12 @@ body.modal-open{overflow:hidden}
 /* AJUSTE RESPONSIVE — FICHA EN TABLET / iPAD VERTICAL
    Mantiene escritorio, landscape y móvil sin cambios estructurales. */
 @media (min-width:651px) and (max-width:900px) and (orientation:portrait){
+  /* Zona segura superior para iPad/tablet vertical: evita que el botón Menú
+     se mezcle visualmente con la barra de estado de iPadOS/PWA. */
+  .topbar{
+    height:calc(62px + max(22px, env(safe-area-inset-top, 0px)));
+    padding-top:max(22px, env(safe-area-inset-top, 0px));
+  }
   .recipe-detail-hero{
     grid-template-columns:minmax(250px,.86fr) minmax(0,1.14fr);
     gap:12px;

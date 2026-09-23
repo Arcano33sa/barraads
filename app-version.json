@@ -1,5 +1,5 @@
 {
-  "version": "1.14.7",
+  "version": "1.14.8",
   "schemaVersion": 1,
-  "notes": "Ficha responsive: en tablet/iPad vertical, fotografía a la izquierda e identidad y metadatos a la derecha. Sin cambios en lógica de fotografías ni en otros formatos."
+  "notes": "Ajuste iPad/tablet vertical: botón Menú separado de la barra de estado mediante safe area superior, sin cambios en otros formatos."
 }
