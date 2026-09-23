@@ -13,6 +13,8 @@ function sanitizePhotoReference(value){
   return {
     storage:'indexeddb',
     key:cleanString(source.key),
+    photoId:cleanString(source.photoId),
+    position:Number.isFinite(Number(source.position)) && Number(source.position) > 0 ? Number(source.position) : null,
     mime:cleanString(source.mime),
     width:numberOrNull(source.width),
     height:numberOrNull(source.height),
@@ -25,6 +27,21 @@ function sanitizePhotoReference(value){
     thumbnailBytes:numberOrNull(source.thumbnailBytes),
     updatedAt:cleanString(source.updatedAt)
   };
+}
+
+function sanitizePhotoReferences(value){
+  const source = Array.isArray(value) ? value : [];
+  const seen = new Set();
+  return source.map((raw,index)=>({reference:sanitizePhotoReference(raw),index}))
+    .filter(item=>Boolean(item.reference))
+    .filter(item => {
+      const reference=item.reference;
+      const identity = `${reference.key}::${reference.photoId || reference.position || item.index + 1}`;
+      if (seen.has(identity)) return false;
+      seen.add(identity);
+      return true;
+    })
+    .map((item,index)=>({...item.reference,position:index + 1}));
 }
 
 export function sanitizeRecipeDraft(draft){
@@ -65,10 +82,17 @@ export function sanitizeRecipeDraft(draft){
     notas: String(source.notas ?? '').trim(),
     estado: ['En prueba','Aprobada','Descartada'].includes(source.estado) ? source.estado : 'En prueba',
     favorita:Boolean(source.favorita),
-    foto:sanitizePhotoReference(source.foto),
+    fotos:[],
+    foto:null,
     createdAt: cleanString(source.createdAt),
     updatedAt: cleanString(source.updatedAt)
   };
+
+  const legacyPhoto = sanitizePhotoReference(source.foto);
+  const photoCollection = sanitizePhotoReferences(source.fotos);
+  recipe.fotos = photoCollection.length ? photoCollection : (legacyPhoto ? [{...legacyPhoto,position:1}] : []);
+  recipe.foto = recipe.fotos[0] || legacyPhoto || null;
+  if (recipe.foto && !recipe.fotos.length) recipe.fotos = [{...recipe.foto,position:1}];
 
   recipe.basesSecundarias = recipe.basesSecundarias.filter(value => value !== recipe.basePrincipal);
   return recipe;

@@ -164,15 +164,28 @@ function statusColor(status){
 }
 
 function normalizePhotoBlobs(media){
-  const blobs = [];
-  const add = value => {
-    const blob = value instanceof Blob ? value : value?.fullBlob instanceof Blob ? value.fullBlob : null;
-    if (blob && blob.type?.startsWith('image/') && !blobs.includes(blob)) blobs.push(blob);
+  const candidates = [];
+  const push = blob => {
+    if (!(blob instanceof Blob) || !blob.type?.startsWith('image/')) return;
+    if (!candidates.includes(blob)) candidates.push(blob);
   };
-  if (Array.isArray(media?.photos)) media.photos.forEach(add);
-  if (Array.isArray(media?.fullBlobs)) media.fullBlobs.forEach(add);
-  add(media?.fullBlob);
-  return blobs;
+  if (Array.isArray(media?.photos)) media.photos.forEach(photo => push(photo?.fullBlob));
+  if (!candidates.length) push(media?.fullBlob);
+  if (Array.isArray(media?.fullBlobs)) media.fullBlobs.forEach(push);
+  return candidates;
+}
+
+async function loadFirstAvailablePhoto(blobs){
+  const safe = Array.isArray(blobs) ? blobs : [];
+  for (let index = 0; index < safe.length; index += 1) {
+    try {
+      const image = await loadImageFromBlob(safe[index]);
+      return {image,index};
+    } catch {
+      // La foto puede estar dañada. Se intenta la siguiente sin alterar el orden guardado.
+    }
+  }
+  return {image:null,index:-1};
 }
 
 function loadImageFromBlob(blob){
@@ -469,11 +482,18 @@ function drawTextPanel(ctx,title,text,y,h,safeBreaks){
 
 async function createRecipeCanvas(recipe,media,{brandImageUrl='./assets/escudo-agora.png'}={}){
   const photoBlobs = normalizePhotoBlobs(media);
-  const [images,brandImage] = await Promise.all([
-    Promise.all(photoBlobs.map(blob => loadImageFromBlob(blob).catch(()=>null))).then(items=>items.filter(Boolean)),
+  const [photoResult,brandImage] = await Promise.all([
+    loadFirstAvailablePhoto(photoBlobs),
     loadImageFromUrl(brandImageUrl)
   ]);
-  if (photoBlobs.length && !images.length) throw new Error('La fotografía guardada no pudo leerse para la exportación.');
+  const images = photoResult.image ? [photoResult.image] : [];
+  const photoStatus = !photoBlobs.length
+    ? 'none'
+    : photoResult.index === 0
+      ? 'primary'
+      : photoResult.index > 0
+        ? 'fallback'
+        : 'placeholder';
   const measureCanvas = document.createElement('canvas');
   measureCanvas.width = EXPORT_WIDTH;
   measureCanvas.height = 10;
@@ -513,7 +533,11 @@ async function createRecipeCanvas(recipe,media,{brandImageUrl='./assets/escudo-a
   ctx.fillText('Barra de El Ágora del Sir · Ficha de receta',EXPORT_PADDING,y + 28);
   ctx.textAlign='right';ctx.fillText('Buenas bebidas · Mejores conversaciones · Siempre aprendiendo',EXPORT_WIDTH - EXPORT_PADDING,y + 28);ctx.textAlign='left';
   safeBreaks.push(Math.min(canvas.height,y + layout.footerH));
-  return {canvas,safeBreaks:[...new Set(safeBreaks.map(value=>Math.max(0,Math.min(canvas.height,Math.round(value)))) )].sort((a,b)=>a-b)};
+  return {
+    canvas,
+    photoStatus,
+    safeBreaks:[...new Set(safeBreaks.map(value=>Math.max(0,Math.min(canvas.height,Math.round(value)))) )].sort((a,b)=>a-b)
+  };
 }
 
 function canvasToBlob(canvas,type,quality){
@@ -656,13 +680,13 @@ function canvasToPdfBlob(source,safeBreaks){
 async function buildRecipeArtifact(recipe,media,format,{brandImageUrl='./assets/escudo-agora.png'}={}){
   const type = String(format || '').toLowerCase();
   if (!['png','jpg','pdf'].includes(type)) throw new Error('Formato de exportación no válido.');
-  const {canvas,safeBreaks} = await createRecipeCanvas(recipe,media,{brandImageUrl});
+  const {canvas,safeBreaks,photoStatus} = await createRecipeCanvas(recipe,media,{brandImageUrl});
   const base = safeRecipeFilename(recipe?.nombre);
   let blob;
   if (type === 'png') blob = await canvasToBlob(canvas,'image/png');
   if (type === 'jpg') blob = await canvasToBlob(canvas,'image/jpeg',.94);
   if (type === 'pdf') blob = canvasToPdfBlob(canvas,safeBreaks);
-  const result = {blob,filename:`${base}.${type}`,bytes:blob.size,type:blob.type,width:canvas.width,height:canvas.height};
+  const result = {blob,filename:`${base}.${type}`,bytes:blob.size,type:blob.type,width:canvas.width,height:canvas.height,photoStatus};
   canvas.width = 1;
   canvas.height = 1;
   return result;
@@ -771,6 +795,8 @@ export async function exportRecipesFile(entries,format,{brandImageUrl='./assets/
   try {
     if (type === 'pdf') {
       const pages = [];
+      let photoFallbackCount = 0;
+      let photoPlaceholderCount = 0;
       for (let index=0;index<safeEntries.length;index+=1) {
         const entry = safeEntries[index];
         onProgress?.({phase:'render',current:index + 1,total:safeEntries.length,recipe:entry.recipe});
@@ -780,6 +806,8 @@ export async function exportRecipesFile(entries,format,{brandImageUrl='./assets/
         } catch (error) {
           throw new Error(`No fue posible generar la ficha de “${cleanText(entry.recipe?.nombre,'Receta')}”. ${error?.message || ''}`.trim());
         }
+        if (rendered.photoStatus === 'fallback') photoFallbackCount += 1;
+        if (rendered.photoStatus === 'placeholder') photoPlaceholderCount += 1;
         const recipePages = canvasToPdfPages(rendered.canvas,rendered.safeBreaks);
         pages.push(...recipePages);
         rendered.canvas.width = 1;
@@ -790,11 +818,13 @@ export async function exportRecipesFile(entries,format,{brandImageUrl='./assets/
       const blob = buildPdfFromJpegs(pages);
       const filename = `${safeCollectionFilename(collectionName)}.pdf`;
       downloadBlob(blob,filename);
-      return {filename,bytes:blob.size,type:blob.type,recipeCount:safeEntries.length,pageCount:pages.length};
+      return {filename,bytes:blob.size,type:blob.type,recipeCount:safeEntries.length,pageCount:pages.length,photoFallbackCount,photoPlaceholderCount};
     }
 
     const names = uniqueExportNames(safeEntries.map(entry => entry.recipe),type);
     const files = [];
+    let photoFallbackCount = 0;
+    let photoPlaceholderCount = 0;
     for (let index=0;index<safeEntries.length;index+=1) {
       const entry = safeEntries[index];
       onProgress?.({phase:'render',current:index + 1,total:safeEntries.length,recipe:entry.recipe});
@@ -804,6 +834,8 @@ export async function exportRecipesFile(entries,format,{brandImageUrl='./assets/
       } catch (error) {
         throw new Error(`No fue posible generar la imagen de “${cleanText(entry.recipe?.nombre,'Receta')}”. ${error?.message || ''}`.trim());
       }
+      if (artifact.photoStatus === 'fallback') photoFallbackCount += 1;
+      if (artifact.photoStatus === 'placeholder') photoPlaceholderCount += 1;
       files.push({name:names[index],blob:artifact.blob});
       await new Promise(resolve => setTimeout(resolve,0));
     }
@@ -811,7 +843,7 @@ export async function exportRecipesFile(entries,format,{brandImageUrl='./assets/
     const zipBlob = await buildStoredZip(files);
     const filename = `${safeCollectionFilename(collectionName)} ${type.toUpperCase()}.zip`;
     downloadBlob(zipBlob,filename);
-    return {filename,bytes:zipBlob.size,type:zipBlob.type,recipeCount:safeEntries.length,fileCount:files.length};
+    return {filename,bytes:zipBlob.size,type:zipBlob.type,recipeCount:safeEntries.length,fileCount:files.length,photoFallbackCount,photoPlaceholderCount};
   } catch (error) {
     if (error instanceof RangeError || /memory|memoria|allocation|canvas/i.test(String(error?.message || ''))) {
       throw new Error('No hay memoria suficiente para completar esta exportación. Reduce la cantidad de recetas y vuelve a intentarlo.');

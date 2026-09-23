@@ -1,5 +1,5 @@
 {
-  "version": "1.11.0",
+  "version": "1.14.0",
   "schemaVersion": 1,
-  "notes": "Exportación final de recetas: individual, seleccionadas y todas en PNG/JPG ZIP o PDF multipágina, con selección temporal, progreso real y hardening offline/PWA."
+  "notes": "Fotografías múltiples final: JSON compatible con respaldos antiguos y múltiples fotos, exportación siempre desde la primera foto con fallback temporal seguro, PWA/offline y hardening final."
 }

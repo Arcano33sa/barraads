@@ -7,7 +7,8 @@ import {
   loadRecipes, saveRecipes, sanitizeRecipeDraft, validateRecipe, createRecipeRecord
 } from './recipes.js';
 import {
-  optimizeRecipePhoto, buildPhotoReference, saveRecipePhoto, getRecipePhoto, deleteRecipePhoto
+  optimizeRecipePhoto, buildPhotoReferences, getRecipePhoto, getRecipePhotos,
+  deleteRecipePhoto, saveRecipePhotoCollection, photoEntryFromProcessed
 } from './media.js';
 import { initSettings, refreshSettingsView } from './settings.js';
 import { exportRecipesFile } from './export.js';
@@ -76,6 +77,9 @@ const recipePhotoImage = document.getElementById('recipePhotoImage');
 const recipePhotoEmpty = document.getElementById('recipePhotoEmpty');
 const recipePhotoEdit = document.getElementById('recipePhotoEdit');
 const recipePhotoDelete = document.getElementById('recipePhotoDelete');
+const recipePhotoAddMore = document.getElementById('recipePhotoAddMore');
+const recipePhotoGallery = document.getElementById('recipePhotoGallery');
+const recipePhotoCount = document.getElementById('recipePhotoCount');
 const newRecipeGlobalBaseFilter = document.getElementById('newRecipeGlobalBaseFilter');
 const savedRecipePhotoInput = document.getElementById('savedRecipePhotoInput');
 const recipeDetailShell = document.getElementById('recipeDetailShell');
@@ -113,6 +117,13 @@ const recipeSelectionCount = document.getElementById('recipeSelectionCount');
 const recipeSelectionCancelBtn = document.getElementById('recipeSelectionCancelBtn');
 const recipeSelectionExportBtn = document.getElementById('recipeSelectionExportBtn');
 const recipeExportSelectedHint = document.getElementById('recipeExportSelectedHint');
+const photoLightbox = document.getElementById('photoLightbox');
+const photoLightboxImage = document.getElementById('photoLightboxImage');
+const photoLightboxFallback = document.getElementById('photoLightboxFallback');
+const photoLightboxIndicator = document.getElementById('photoLightboxIndicator');
+const photoLightboxPrev = document.getElementById('photoLightboxPrev');
+const photoLightboxNext = document.getElementById('photoLightboxNext');
+const photoLightboxClose = document.getElementById('photoLightboxClose');
 
 const DEMO_RECIPES = [
   { id:'margarita', name:'Margarita', base:'Tequila', details:'Tequila, triple sec, jugo de lima.', search:'tequila triple sec lima cítrico agitar shaker', thumb:'thumb-margarita' },
@@ -145,15 +156,22 @@ let pendingDeleteValue = null;
 let toastTimer = null;
 let recipes = loadRecipes(storage);
 let photoObjectUrl = null;
-let pendingPhoto = null;
+let editorPhotoItems = [];
+let editorPhotoObjectUrls = [];
+let editorPhotosDirty = false;
+let photoInputMode = 'append';
 let photoProcessing = false;
 let savedPhotoTargetId = null;
 let savedRecipeThumbUrls = [];
+let activeRecipeGalleryUrls = new Map();
 let activeRecipeId = null;
-let detailPhotoObjectUrl = null;
+let detailPhotoObjectUrls = [];
+let lightboxObjectUrls = [];
+let lightboxIndex = 0;
+let lightboxRecipeId = null;
+let lightboxReturnFocus = null;
 let editingRecipeId = null;
 let editorLoadedRecipeId = null;
-let editingPhotoRemoved = false;
 let pendingRecipeDeleteId = null;
 let exportRecipeTargetId = null;
 let exportBusy = false;
@@ -281,6 +299,7 @@ function renderRecipes(){
 function revokeSavedRecipeThumbUrls(){
   savedRecipeThumbUrls.forEach(url => URL.revokeObjectURL(url));
   savedRecipeThumbUrls = [];
+  activeRecipeGalleryUrls = new Map();
 }
 
 function formatPhotoBytes(value){
@@ -343,14 +362,22 @@ async function loadRecipeThumbUrls(items){
   const map = new Map();
   await Promise.all(items.map(async recipe => {
     try {
-      const media = await getRecipePhoto(recipe.id);
-      const blob = media?.thumbnailBlob instanceof Blob ? media.thumbnailBlob : null;
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      savedRecipeThumbUrls.push(url);
-      map.set(recipe.id,url);
+      const photos = await getRecipePhotos(recipe.id);
+      const urls = photos.map(photo => {
+        const blob = photo?.thumbnailBlob instanceof Blob ? photo.thumbnailBlob : null;
+        if (!blob) return null;
+        try {
+          const url = URL.createObjectURL(blob);
+          savedRecipeThumbUrls.push(url);
+          return url;
+        } catch {
+          return null;
+        }
+      }).filter(Boolean);
+      if (urls.length) map.set(recipe.id,urls);
     } catch { /* photo is optional */ }
   }));
+  activeRecipeGalleryUrls = map;
   return map;
 }
 
@@ -367,8 +394,18 @@ function baseSymbolMarkup(base){
   return `<span class="base-symbol-letter">${escapeHtml(initial)}</span>`;
 }
 
-function recipeThumbMarkup(recipe,url){
-  if (url) return `<div class="stage7-recipe-thumb"><img src="${escapeHtml(url)}" alt="Fotografía de ${escapeHtml(recipe.nombre)}"></div>`;
+function recipeThumbMarkup(recipe,urls){
+  const safeUrls = Array.isArray(urls) ? urls.filter(Boolean) : (urls ? [urls] : []);
+  if (safeUrls.length) {
+    const total = safeUrls.length;
+    return `<div class="stage7-recipe-thumb recipe-photo-gallery" data-recipe-gallery="${escapeHtml(recipe.id)}" data-gallery-index="0">
+      <button class="gallery-photo-trigger" type="button" data-open-photo-viewer="${escapeHtml(recipe.id)}" aria-label="Ver fotografía de ${escapeHtml(recipe.nombre)} en grande">
+        <img src="${escapeHtml(safeUrls[0])}" alt="Fotografía 1 de ${total} de ${escapeHtml(recipe.nombre)}">
+        <span class="gallery-fallback" aria-hidden="true">◇</span>
+      </button>
+      ${total > 1 ? `<button class="gallery-nav gallery-nav-prev" type="button" data-gallery-shift="-1" aria-label="Fotografía anterior">‹</button><button class="gallery-nav gallery-nav-next" type="button" data-gallery-shift="1" aria-label="Fotografía siguiente">›</button><span class="gallery-position" aria-live="polite">1 / ${total}</span>` : ''}
+    </div>`;
+  }
   const initial = String(recipe.nombre || '?').trim().charAt(0).toLocaleUpperCase('es') || '?';
   return `<div class="stage7-recipe-thumb is-empty" aria-label="Sin fotografía"><span>${escapeHtml(initial)}</span></div>`;
 }
@@ -516,8 +553,118 @@ function renderActiveStage7View(){
 }
 
 function releaseDetailPhotoUrl(){
-  if (detailPhotoObjectUrl) URL.revokeObjectURL(detailPhotoObjectUrl);
-  detailPhotoObjectUrl = null;
+  detailPhotoObjectUrls.forEach(url => URL.revokeObjectURL(url));
+  detailPhotoObjectUrls = [];
+}
+
+function releaseLightboxUrls(){
+  lightboxObjectUrls.forEach(url => { if (url) URL.revokeObjectURL(url); });
+  lightboxObjectUrls = [];
+}
+
+function circularIndex(index,total){
+  if (!total) return 0;
+  return ((index % total) + total) % total;
+}
+
+function setGalleryIndex(gallery,index){
+  if (!gallery) return;
+  const recipeId = gallery.dataset.recipeGallery || '';
+  const isDetailGallery = gallery.classList.contains('recipe-detail-photo') || Boolean(gallery.closest('.recipe-detail-photo'));
+  const urls = isDetailGallery && recipeId === activeRecipeId
+    ? detailPhotoObjectUrls
+    : (activeRecipeGalleryUrls.get(recipeId) || []);
+  if (!urls.length) return;
+  const next = circularIndex(index,urls.length);
+  gallery.dataset.galleryIndex = String(next);
+  const img = gallery.querySelector('img');
+  const position = gallery.querySelector('.gallery-position');
+  gallery.classList.remove('is-broken');
+  if (img) {
+    img.src = urls[next];
+    const recipe = recipes.find(item => item.id === recipeId);
+    img.alt = `Fotografía ${next + 1} de ${urls.length} de ${recipe?.nombre || 'la receta'}`;
+  }
+  if (position) position.textContent = `${next + 1} / ${urls.length}`;
+}
+
+function shiftGallery(gallery,delta){
+  if (!gallery) return;
+  const current = Number(gallery.dataset.galleryIndex || 0);
+  setGalleryIndex(gallery,current + Number(delta || 0));
+}
+
+function renderLightboxPhoto(){
+  if (!photoLightbox || !photoLightboxImage) return;
+  const total = lightboxObjectUrls.length;
+  if (!total) return;
+  lightboxIndex = circularIndex(lightboxIndex,total);
+  const url = lightboxObjectUrls[lightboxIndex];
+  const recipe = recipes.find(item => item.id === lightboxRecipeId);
+  photoLightbox.classList.remove('is-broken');
+  if (url) {
+    photoLightboxImage.hidden = false;
+    photoLightboxImage.src = url;
+    photoLightboxImage.alt = `Fotografía ${lightboxIndex + 1} de ${total} de ${recipe?.nombre || 'la receta'}`;
+    if (photoLightboxFallback) photoLightboxFallback.hidden = true;
+  } else {
+    photoLightboxImage.removeAttribute('src');
+    photoLightboxImage.hidden = true;
+    if (photoLightboxFallback) photoLightboxFallback.hidden = false;
+    photoLightbox.classList.add('is-broken');
+  }
+  const multiple = total > 1;
+  if (photoLightboxPrev) photoLightboxPrev.hidden = !multiple;
+  if (photoLightboxNext) photoLightboxNext.hidden = !multiple;
+  if (photoLightboxIndicator) {
+    photoLightboxIndicator.hidden = !multiple;
+    photoLightboxIndicator.textContent = `${lightboxIndex + 1} / ${total}`;
+  }
+}
+
+async function openPhotoLightbox(recipeId,startIndex = 0,trigger = null){
+  const recipe = recipes.find(item => item.id === recipeId);
+  if (!recipe || !photoLightbox) return;
+  let photos = [];
+  try { photos = await getRecipePhotos(recipe.id); } catch { photos = []; }
+  if (!photos.length) return;
+  releaseLightboxUrls();
+  lightboxObjectUrls = photos.map(photo => {
+    const blob = photo?.fullBlob instanceof Blob ? photo.fullBlob : null;
+    if (!blob) return null;
+    try { return URL.createObjectURL(blob); } catch { return null; }
+  });
+  lightboxIndex = circularIndex(Number(startIndex || 0),lightboxObjectUrls.length);
+  lightboxRecipeId = recipe.id;
+  lightboxReturnFocus = trigger instanceof HTMLElement ? trigger : document.activeElement;
+  photoLightbox.hidden = false;
+  photoLightbox.classList.add('is-open');
+  renderLightboxPhoto();
+  setModalState();
+  requestAnimationFrame(() => photoLightboxClose?.focus());
+}
+
+function closePhotoLightbox(){
+  if (!photoLightbox || photoLightbox.hidden) return;
+  photoLightbox.classList.remove('is-open','is-broken');
+  photoLightbox.hidden = true;
+  if (photoLightboxImage) {
+    photoLightboxImage.removeAttribute('src');
+    photoLightboxImage.hidden = false;
+  }
+  if (photoLightboxFallback) photoLightboxFallback.hidden = true;
+  releaseLightboxUrls();
+  lightboxIndex = 0;
+  lightboxRecipeId = null;
+  setModalState();
+  if (lightboxReturnFocus instanceof HTMLElement && document.contains(lightboxReturnFocus)) lightboxReturnFocus.focus();
+  lightboxReturnFocus = null;
+}
+
+function shiftPhotoLightbox(delta){
+  if (!lightboxObjectUrls.length) return;
+  lightboxIndex = circularIndex(lightboxIndex + Number(delta || 0),lightboxObjectUrls.length);
+  renderLightboxPhoto();
 }
 
 function formatRecipeAmount(value){
@@ -559,10 +706,14 @@ async function renderRecipeDetail(recipeId){
     return;
   }
 
-  let media = null;
-  try { media = await getRecipePhoto(recipe.id); } catch { media = null; }
-  const photoBlob = media?.fullBlob instanceof Blob ? media.fullBlob : null;
-  if (photoBlob) detailPhotoObjectUrl = URL.createObjectURL(photoBlob);
+  let detailPhotos = [];
+  try { detailPhotos = await getRecipePhotos(recipe.id); } catch { detailPhotos = []; }
+  detailPhotoObjectUrls = detailPhotos.map(photo => {
+    const blob = photo?.fullBlob instanceof Blob ? photo.fullBlob : null;
+    if (!blob) return null;
+    try { return URL.createObjectURL(blob); } catch { return null; }
+  }).filter(Boolean);
+  const photoBlob = detailPhotoObjectUrls.length ? detailPhotos[0]?.fullBlob : null;
 
   const secondaryBases = recipe.basesSecundarias || [];
   const alchemy = [...(recipe.alquimia || [])].sort((a,b) => Number(a.orden || 0) - Number(b.orden || 0));
@@ -598,8 +749,8 @@ async function renderRecipeDetail(recipeId){
 
     <article class="recipe-detail-card">
       <div class="recipe-detail-hero">
-        <div class="recipe-detail-photo${photoBlob ? '' : ' is-empty'}">
-          ${photoBlob ? `<img src="${escapeHtml(detailPhotoObjectUrl)}" alt="Fotografía de ${escapeHtml(recipe.nombre)}">` : `<div class="detail-photo-placeholder"><span aria-hidden="true">◇</span><strong>Sin fotografía</strong><small>La receta conserva toda su información.</small></div>`}
+        <div class="recipe-detail-photo${photoBlob ? ' recipe-photo-gallery' : ' is-empty'}"${photoBlob ? ` data-recipe-gallery="${escapeHtml(recipe.id)}" data-gallery-index="0"` : ''}>
+          ${photoBlob ? `<button class="gallery-photo-trigger detail-gallery-trigger" type="button" data-open-photo-viewer="${escapeHtml(recipe.id)}" aria-label="Ver fotografía de ${escapeHtml(recipe.nombre)} en grande"><img src="${escapeHtml(detailPhotoObjectUrls[0])}" alt="Fotografía 1 de ${detailPhotoObjectUrls.length} de ${escapeHtml(recipe.nombre)}"><span class="gallery-fallback" aria-hidden="true">◇</span></button>${detailPhotoObjectUrls.length > 1 ? `<button class="gallery-nav gallery-nav-prev detail-gallery-nav" type="button" data-gallery-shift="-1" aria-label="Fotografía anterior">‹</button><button class="gallery-nav gallery-nav-next detail-gallery-nav" type="button" data-gallery-shift="1" aria-label="Fotografía siguiente">›</button><span class="gallery-position detail-gallery-position" aria-live="polite">1 / ${detailPhotoObjectUrls.length}</span>` : ''}` : `<div class="detail-photo-placeholder"><span aria-hidden="true">◇</span><strong>Sin fotografía</strong><small>La receta conserva toda su información.</small></div>`}
         </div>
         <div class="recipe-detail-intro">
           <p class="detail-eyebrow">Ficha completa de receta</p>
@@ -810,10 +961,13 @@ async function runRecipeExport(format){
       const recipe = targets[index];
       if (recipeExportStatus) recipeExportStatus.textContent = `Leyendo datos ${index + 1} de ${targets.length}: ${recipe.nombre}`;
       let media = null;
-      if (recipe.foto) {
+      if (recipe.foto || recipe.fotos?.length) {
         try {
           media = await getRecipePhoto(recipe.id);
-          if (!(media?.fullBlob instanceof Blob)) photoIssues += 1;
+          const available = Array.isArray(media?.photos)
+            ? media.photos.some(photo => photo?.fullBlob instanceof Blob && photo.fullBlob.type?.startsWith('image/'))
+            : media?.fullBlob instanceof Blob && media.fullBlob.type?.startsWith('image/');
+          if (!available) photoIssues += 1;
         } catch { photoIssues += 1; }
       }
       entries.push({recipe,media});
@@ -830,12 +984,17 @@ async function runRecipeExport(format){
         recipeExportStatus.textContent = `Generando ${progress.current} de ${progress.total}${recipeName}`;
       }
     });
-    const photoNote = photoIssues ? ` ${photoIssues} ${photoIssues === 1 ? 'fotografía no pudo leerse y usó placeholder.' : 'fotografías no pudieron leerse y usaron placeholder.'}` : '';
+    const fallbackCount = Number(result.photoFallbackCount || (result.photoStatus === 'fallback' ? 1 : 0));
+    const placeholderCount = Math.max(photoIssues,Number(result.photoPlaceholderCount || (result.photoStatus === 'placeholder' ? 1 : 0)));
+    const notes = [];
+    if (fallbackCount) notes.push(`${fallbackCount} ${fallbackCount === 1 ? 'receta usó temporalmente la siguiente fotografía válida' : 'recetas usaron temporalmente la siguiente fotografía válida'} sin cambiar la principal`);
+    if (placeholderCount) notes.push(`${placeholderCount} ${placeholderCount === 1 ? 'receta usó placeholder por fotografía no disponible' : 'recetas usaron placeholder por fotografías no disponibles'}`);
+    const photoNote = notes.length ? ` ${notes.join(' · ')}.` : '';
     if (recipeExportStatus) {
       recipeExportStatus.textContent = `${result.filename} generado correctamente.${photoNote}`;
       recipeExportStatus.classList.add('is-success');
     }
-    showToast(`${String(format).toUpperCase()} generado correctamente.${photoIssues ? ' Se usó placeholder donde la foto no estuvo disponible.' : ''}`);
+    showToast(`${String(format).toUpperCase()} generado correctamente.${photoNote}`);
     if (exportScope === 'selected') {
       recipeSelectionMode = false;
       selectedRecipeIds.clear();
@@ -893,24 +1052,26 @@ async function duplicateRecipe(recipeId){
     nombre:`${source.nombre} (copia)`,
     favorita:false,
     foto:null,
+    fotos:[],
     createdAt:'',
     updatedAt:''
   });
   const copy = createRecipeRecord(copyDraft);
-  let photoCopied = false;
+  let photosCopied = 0;
   let photoCopySkipped = false;
-  if (source.foto) {
+  if (source.foto || source.fotos?.length) {
     try {
-      const media = await getRecipePhoto(source.id);
-      if (media?.fullBlob instanceof Blob && media?.thumbnailBlob instanceof Blob) {
-        const processed = {
-          fullBlob:media.fullBlob,
-          thumbnailBlob:media.thumbnailBlob,
-          metadata:{...(media.metadata || {})}
-        };
-        await saveRecipePhoto(copy.id,processed);
-        copy.foto = buildPhotoReference(copy.id,processed);
-        photoCopied = true;
+      const sourcePhotos = await getRecipePhotos(source.id);
+      if (sourcePhotos.length) {
+        const copiedEntries = sourcePhotos.map(photo=>photoEntryFromProcessed(copy.id,{
+          fullBlob:photo.fullBlob,
+          thumbnailBlob:photo.thumbnailBlob,
+          metadata:{...(photo.metadata || {})}
+        }));
+        await saveRecipePhotoCollection(copy.id,copiedEntries);
+        copy.fotos = buildPhotoReferences(copy.id,copiedEntries);
+        copy.foto = copy.fotos[0] || null;
+        photosCopied = copiedEntries.length;
       } else {
         photoCopySkipped = true;
       }
@@ -921,13 +1082,15 @@ async function duplicateRecipe(recipeId){
   try {
     recipes = saveRecipes(storage,[...recipes,copy]);
   } catch (error) {
-    if (photoCopied) {
+    if (photosCopied) {
       try { await deleteRecipePhoto(copy.id); } catch { /* cleanup best effort */ }
     }
     showToast(error?.message || 'No fue posible duplicar la receta.',{error:true});
     return;
   }
-  showToast(photoCopied ? 'Receta duplicada con su fotografía.' : (photoCopySkipped ? 'Receta duplicada; la fotografía no pudo copiarse.' : 'Receta duplicada correctamente.'),{error:photoCopySkipped});
+  showToast(photosCopied
+    ? `Receta duplicada con ${photosCopied} ${photosCopied === 1 ? 'fotografía' : 'fotografías'}.`
+    : (photoCopySkipped ? 'Receta duplicada; sus fotografías no pudieron copiarse.' : 'Receta duplicada correctamente.'),{error:photoCopySkipped});
   renderActiveStage7View();
   openRecipeDetail(copy.id);
 }
@@ -936,7 +1099,7 @@ function openRecipeDeleteModal(recipeId){
   const recipe = recipes.find(item => item.id === recipeId);
   if (!recipe || !recipeDeleteModal) return;
   pendingRecipeDeleteId = recipe.id;
-  if (recipeDeleteModalCopy) recipeDeleteModalCopy.textContent = `Se eliminará “${recipe.nombre}” y su fotografía local, si existe. Esta acción no afectará otras recetas.`;
+  if (recipeDeleteModalCopy) recipeDeleteModalCopy.textContent = `Se eliminará “${recipe.nombre}” y sus fotografías locales, si existen. Esta acción no afectará otras recetas.`;
   recipeDeleteModal.hidden = false;
   recipeDeleteModal.classList.add('is-open');
   setModalState();
@@ -986,10 +1149,11 @@ async function confirmRecipeDelete(){
   }
 }
 
-function updateSavedRecipeReference(recipeId,photoReference){
+function updateSavedRecipeReferences(recipeId,photoReferences){
   const now = new Date().toISOString();
+  const safe = Array.isArray(photoReferences) ? photoReferences : [];
   recipes = recipes.map(recipe => recipe.id === recipeId
-    ? {...recipe,foto:photoReference,updatedAt:now}
+    ? {...recipe,fotos:safe,foto:safe[0] || null,updatedAt:now}
     : recipe);
   recipes = saveRecipes(storage,recipes);
 }
@@ -999,10 +1163,13 @@ async function replaceSavedRecipePhoto(recipeId,file){
   showToast('Optimizando fotografía…');
   try {
     const processed = await optimizeRecipePhoto(file);
-    await saveRecipePhoto(recipeId,processed);
-    updateSavedRecipeReference(recipeId,buildPhotoReference(recipeId,processed));
+    const current = await getRecipePhotos(recipeId);
+    const replacement = photoEntryFromProcessed(recipeId,processed);
+    const next = current.length ? [replacement,...current.slice(1)] : [replacement];
+    await saveRecipePhotoCollection(recipeId,next);
+    updateSavedRecipeReferences(recipeId,buildPhotoReferences(recipeId,next));
     renderActiveStage7View();
-    showToast('Fotografía actualizada correctamente.');
+    showToast('Fotografía principal actualizada correctamente.');
   } catch (error) {
     showToast(error?.message || 'No fue posible actualizar la fotografía.',{error:true});
   } finally {
@@ -1014,10 +1181,14 @@ async function replaceSavedRecipePhoto(recipeId,file){
 async function removeSavedRecipePhoto(recipeId){
   if (!recipeId) return;
   try {
-    await deleteRecipePhoto(recipeId);
-    updateSavedRecipeReference(recipeId,null);
+    const current = await getRecipePhotos(recipeId);
+    if (!current.length) return;
+    const next = current.slice(1);
+    if (next.length) await saveRecipePhotoCollection(recipeId,next);
+    else await deleteRecipePhoto(recipeId);
+    updateSavedRecipeReferences(recipeId,buildPhotoReferences(recipeId,next));
     renderActiveStage7View();
-    showToast('Fotografía eliminada. La receta se conserva intacta.');
+    showToast(next.length ? 'Fotografía principal eliminada. La siguiente pasó a ser principal.' : 'Fotografía eliminada. La receta se conserva intacta.');
   } catch (error) {
     showToast(error?.message || 'No fue posible eliminar la fotografía.',{error:true});
   }
@@ -1087,7 +1258,7 @@ function renderCatalog(){
 }
 
 function setModalState(){
-  const anyOpen = (catalogModal && !catalogModal.hidden) || (deleteModal && !deleteModal.hidden) || (recipeDeleteModal && !recipeDeleteModal.hidden) || (recipeExportModal && !recipeExportModal.hidden);
+  const anyOpen = (catalogModal && !catalogModal.hidden) || (deleteModal && !deleteModal.hidden) || (recipeDeleteModal && !recipeDeleteModal.hidden) || (recipeExportModal && !recipeExportModal.hidden) || (photoLightbox && !photoLightbox.hidden);
   document.body.classList.toggle('modal-open',Boolean(anyOpen));
 }
 
@@ -1435,12 +1606,67 @@ function setPhotoProcessingState(isProcessing){
   document.querySelector('.photo-dropzone')?.classList.toggle('is-processing',photoProcessing);
   const saveButton = newRecipeForm?.querySelector('.recipe-save');
   if (saveButton) saveButton.disabled = photoProcessing;
+  if (recipePhotoAddMore) recipePhotoAddMore.disabled = photoProcessing;
+}
+
+function releaseEditorPhotoUrls(){
+  if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl);
+  photoObjectUrl = null;
+  editorPhotoObjectUrls.forEach(url=>URL.revokeObjectURL(url));
+  editorPhotoObjectUrls = [];
+}
+
+function renderEditorPhotos(){
+  releaseEditorPhotoUrls();
+  const count = editorPhotoItems.length;
+  if (recipePhotoCount) recipePhotoCount.textContent = `${count} ${count === 1 ? 'fotografía' : 'fotografías'}`;
+
+  if (!count) {
+    if (recipePhotoImage) {
+      recipePhotoImage.removeAttribute('src');
+      recipePhotoImage.hidden = true;
+    }
+    if (recipePhotoEmpty) recipePhotoEmpty.hidden = false;
+    if (recipePhotoEdit) recipePhotoEdit.disabled = true;
+    if (recipePhotoDelete) recipePhotoDelete.disabled = true;
+    if (recipePhotoGallery) {
+      recipePhotoGallery.innerHTML = '';
+      recipePhotoGallery.hidden = true;
+    }
+    return;
+  }
+
+  const primary = editorPhotoItems[0];
+  photoObjectUrl = URL.createObjectURL(primary.fullBlob);
+  if (recipePhotoImage) {
+    recipePhotoImage.src = photoObjectUrl;
+    recipePhotoImage.hidden = false;
+  }
+  if (recipePhotoEmpty) recipePhotoEmpty.hidden = true;
+  if (recipePhotoEdit) recipePhotoEdit.disabled = false;
+  if (recipePhotoDelete) recipePhotoDelete.disabled = false;
+
+  if (recipePhotoGallery) {
+    const urls = editorPhotoItems.map(item=>{
+      const url = URL.createObjectURL(item.thumbnailBlob instanceof Blob ? item.thumbnailBlob : item.fullBlob);
+      editorPhotoObjectUrls.push(url);
+      return url;
+    });
+    recipePhotoGallery.innerHTML = editorPhotoItems.map((item,index)=>`
+      <div class="photo-gallery-item${index === 0 ? ' is-primary' : ''}" data-editor-photo-index="${index}">
+        <img src="${escapeHtml(urls[index])}" alt="Fotografía ${index + 1} de la receta">
+        ${index === 0 ? '<span class="photo-gallery-primary">Principal</span>' : ''}
+        <button class="photo-gallery-delete" type="button" data-remove-editor-photo="${index}" aria-label="Eliminar fotografía ${index + 1}" title="Eliminar fotografía ${index + 1}">×</button>
+      </div>`).join('');
+    recipePhotoGallery.hidden = false;
+  }
 }
 
 function releasePhotoPreview(){
-  if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl);
-  photoObjectUrl = null;
-  pendingPhoto = null;
+  releaseEditorPhotoUrls();
+  editorPhotoItems = [];
+  editorPhotosDirty = false;
+  photoInputMode = 'append';
   if (recipePhotoImage) {
     recipePhotoImage.removeAttribute('src');
     recipePhotoImage.hidden = true;
@@ -1449,28 +1675,59 @@ function releasePhotoPreview(){
   if (recipePhotoInput) recipePhotoInput.value = '';
   if (recipePhotoEdit) recipePhotoEdit.disabled = true;
   if (recipePhotoDelete) recipePhotoDelete.disabled = true;
+  if (recipePhotoGallery) {
+    recipePhotoGallery.innerHTML = '';
+    recipePhotoGallery.hidden = true;
+  }
+  if (recipePhotoCount) recipePhotoCount.textContent = '0 fotografías';
 }
 
-async function setTemporaryPhoto(file){
-  if (!file) return;
+async function setTemporaryPhotos(files,mode = photoInputMode){
+  const selected = [...(files || [])].filter(file=>file instanceof Blob);
+  const replacePrimary = mode === 'replace-primary' && editorPhotoItems.length > 0;
+  if (!selected.length) return;
   setPhotoProcessingState(true);
+  let added = 0;
+  const failures = [];
   try {
-    const processed = await optimizeRecipePhoto(file);
-    if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl);
-    pendingPhoto = processed;
-    photoObjectUrl = URL.createObjectURL(processed.fullBlob);
-    recipePhotoImage.src = photoObjectUrl;
-    recipePhotoImage.hidden = false;
-    recipePhotoEmpty.hidden = true;
-    recipePhotoEdit.disabled = false;
-    recipePhotoDelete.disabled = false;
-    showToast(`Fotografía lista · ${formatPhotoBytes(processed.fullBlob.size)} optimizada.`);
-  } catch (error) {
-    showToast(error?.message || 'No fue posible preparar la fotografía.',{error:true});
-    if (recipePhotoInput) recipePhotoInput.value = '';
+    for (const file of selected) {
+      try {
+        const processed = await optimizeRecipePhoto(file);
+        const entry = photoEntryFromProcessed(editingRecipeId || 'draft',processed);
+        if (replacePrimary && added === 0) editorPhotoItems.splice(0,1,entry);
+        else editorPhotoItems.push(entry);
+        added += 1;
+      } catch (error) {
+        failures.push(error?.message || 'No fue posible preparar una fotografía.');
+      }
+    }
+    if (added) {
+      editorPhotosDirty = true;
+      renderEditorPhotos();
+      const totalBytes = editorPhotoItems.reduce((sum,item)=>sum + Number(item.fullBlob?.size || 0),0);
+      showToast(replacePrimary
+        ? `Fotografía principal actualizada${added > 1 ? ` y ${added - 1} adicional${added - 1 === 1 ? '' : 'es'} agregada${added - 1 === 1 ? '' : 's'}` : ''}.`
+        : `${added} ${added === 1 ? 'fotografía lista' : 'fotografías listas'} · ${formatPhotoBytes(totalBytes)} optimizados en total.`);
+    }
+    if (failures.length) showToast(`${failures.length} ${failures.length === 1 ? 'imagen no pudo procesarse' : 'imágenes no pudieron procesarse'}. ${failures[0]}`,{error:true});
   } finally {
+    if (recipePhotoInput) recipePhotoInput.value = '';
+    photoInputMode = 'append';
     setPhotoProcessingState(false);
   }
+}
+
+function removeEditorPhoto(index){
+  if (!Number.isInteger(index) || index < 0 || index >= editorPhotoItems.length) return;
+  const isPrimary = index === 0;
+  const message = isPrimary && editorPhotoItems.length > 1
+    ? '¿Eliminar la fotografía principal? La siguiente pasará automáticamente a ser la nueva principal.'
+    : '¿Eliminar esta fotografía de la receta?';
+  if (!globalThis.confirm(message)) return;
+  editorPhotoItems.splice(index,1);
+  editorPhotosDirty = true;
+  renderEditorPhotos();
+  showToast(editorPhotoItems.length ? 'Fotografía eliminada de la edición.' : 'Todas las fotografías fueron retiradas. Se mostrará el placeholder.');
 }
 
 function resetRecipeForm(){
@@ -1510,21 +1767,22 @@ function setRecipeEditorMode(isEditing){
 
 async function showStoredPhotoInEditor(recipeId){
   try {
-    const media = await getRecipePhoto(recipeId);
-    const blob = media?.fullBlob instanceof Blob ? media.fullBlob : null;
-    if (!blob) return false;
-    if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl);
-    photoObjectUrl = URL.createObjectURL(blob);
-    pendingPhoto = null;
-    if (recipePhotoImage) {
-      recipePhotoImage.src = photoObjectUrl;
-      recipePhotoImage.hidden = false;
-    }
-    if (recipePhotoEmpty) recipePhotoEmpty.hidden = true;
-    if (recipePhotoEdit) recipePhotoEdit.disabled = false;
-    if (recipePhotoDelete) recipePhotoDelete.disabled = false;
-    return true;
+    const photos = await getRecipePhotos(recipeId);
+    editorPhotoItems = photos.map(photo=>({
+      photoId:photo.photoId,
+      fullBlob:photo.fullBlob,
+      thumbnailBlob:photo.thumbnailBlob,
+      metadata:{...(photo.metadata || {})},
+      createdAt:photo.createdAt || '',
+      updatedAt:photo.updatedAt || ''
+    }));
+    editorPhotosDirty = false;
+    renderEditorPhotos();
+    return editorPhotoItems.length > 0;
   } catch {
+    editorPhotoItems = [];
+    editorPhotosDirty = false;
+    renderEditorPhotos();
     return false;
   }
 }
@@ -1550,8 +1808,8 @@ async function loadRecipeIntoEditor(recipe){
   updateSecondaryBaseAvailability();
   updateRecipeStatusVisual();
   releasePhotoPreview();
-  editingPhotoRemoved = false;
-  if (recipe.foto) await showStoredPhotoInEditor(recipe.id);
+  if (recipe.foto || recipe.fotos?.length) await showStoredPhotoInEditor(recipe.id);
+  else renderEditorPhotos();
   setRecipeEditorMode(true);
   updateRecipeStorageNote(`Editando “${recipe.nombre}” · los cambios conservarán el mismo registro.`);
   editorLoadedRecipeId = recipe.id;
@@ -1560,7 +1818,6 @@ async function loadRecipeIntoEditor(recipe){
 function startNewRecipeEditor(){
   editingRecipeId = null;
   editorLoadedRecipeId = null;
-  editingPhotoRemoved = false;
   if (recipeFormInitialized) resetRecipeForm();
   setRecipeEditorMode(false);
   showView('nueva-receta');
@@ -1636,40 +1893,49 @@ async function saveNewRecipe(event){
 
   const now = new Date().toISOString();
   const record = existing
-    ? sanitizeRecipeDraft({...existing,...clean,id:existing.id,createdAt:existing.createdAt || now,updatedAt:now,favorita:existing.favorita,foto:existing.foto})
+    ? sanitizeRecipeDraft({...existing,...clean,id:existing.id,createdAt:existing.createdAt || now,updatedAt:now,favorita:existing.favorita,foto:existing.foto,fotos:existing.fotos})
     : createRecipeRecord(clean);
-  let photoWasStored = false;
-  let photoWasDeleted = false;
+  const mediaChanged = !existing || editorPhotosDirty;
+  let previousMedia = null;
+  let mediaWritten = false;
 
   try {
-    if (pendingPhoto) {
-      await saveRecipePhoto(record.id,pendingPhoto);
-      record.foto = buildPhotoReference(record.id,pendingPhoto);
-      photoWasStored = true;
-    } else if (existing && editingPhotoRemoved && existing.foto) {
-      await deleteRecipePhoto(existing.id);
-      record.foto = null;
-      photoWasDeleted = true;
+    if (mediaChanged) {
+      if (existing) previousMedia = await getRecipePhotos(existing.id);
+      if (editorPhotoItems.length) {
+        await saveRecipePhotoCollection(record.id,editorPhotoItems);
+        const references = buildPhotoReferences(record.id,editorPhotoItems,new Date(now));
+        record.fotos = references;
+        record.foto = references[0] || null;
+      } else {
+        await deleteRecipePhoto(record.id);
+        record.fotos = [];
+        record.foto = null;
+      }
+      mediaWritten = true;
     }
 
     recipes = existing
       ? saveRecipes(storage,recipes.map(item => item.id === record.id ? record : item))
       : saveRecipes(storage,[...recipes,record]);
   } catch (error) {
-    if (!existing && photoWasStored) {
-      try { await deleteRecipePhoto(record.id); } catch { /* cleanup best effort */ }
+    if (mediaWritten) {
+      try {
+        if (existing && previousMedia?.length) await saveRecipePhotoCollection(existing.id,previousMedia);
+        else await deleteRecipePhoto(record.id);
+      } catch { /* rollback best effort */ }
     }
     showToast(error?.message || (existing ? 'No fue posible actualizar la receta.' : 'No fue posible guardar la receta.'),{error:true});
     return;
   }
 
   const wasEditing = Boolean(existing);
+  const savedPhotoCount = record.fotos?.length || 0;
   editingRecipeId = null;
   editorLoadedRecipeId = null;
-  editingPhotoRemoved = false;
   showToast(wasEditing
-    ? (photoWasDeleted ? 'Receta actualizada y fotografía eliminada.' : 'Receta actualizada correctamente.')
-    : (record.foto ? 'Receta y fotografía guardadas correctamente.' : 'Receta guardada correctamente.'));
+    ? `Receta actualizada correctamente${savedPhotoCount ? ` · ${savedPhotoCount} ${savedPhotoCount === 1 ? 'fotografía' : 'fotografías'}.` : ' · sin fotografías.'}`
+    : (savedPhotoCount ? `Receta guardada con ${savedPhotoCount} ${savedPhotoCount === 1 ? 'fotografía' : 'fotografías'}.` : 'Receta guardada correctamente.'));
   resetRecipeForm();
   updateRecipeStorageNote();
   if (wasEditing) openRecipeDetail(record.id,{replaceHash:true});
@@ -1771,6 +2037,37 @@ document.addEventListener('click',event => {
   const selectRecipe = event.target.closest('[data-select-recipe]');
   if (selectRecipe){
     toggleRecipeSelection(selectRecipe.dataset.selectRecipe,selectRecipe.checked);
+    return;
+  }
+
+  const galleryShift = event.target.closest('[data-gallery-shift]');
+  if (galleryShift){
+    event.preventDefault();
+    event.stopPropagation();
+    shiftGallery(galleryShift.closest('[data-recipe-gallery]'),Number(galleryShift.dataset.galleryShift || 0));
+    return;
+  }
+
+  const openPhotoViewer = event.target.closest('[data-open-photo-viewer]');
+  if (openPhotoViewer){
+    event.preventDefault();
+    event.stopPropagation();
+    const gallery = openPhotoViewer.closest('[data-recipe-gallery]');
+    const index = Number(gallery?.dataset.galleryIndex || 0);
+    void openPhotoLightbox(openPhotoViewer.dataset.openPhotoViewer,index,openPhotoViewer);
+    return;
+  }
+
+  const lightboxShift = event.target.closest('[data-lightbox-shift]');
+  if (lightboxShift){
+    event.preventDefault();
+    event.stopPropagation();
+    shiftPhotoLightbox(Number(lightboxShift.dataset.lightboxShift || 0));
+    return;
+  }
+
+  if (event.target.closest('[data-close-photo-viewer]')) {
+    closePhotoLightbox();
     return;
   }
 
@@ -1905,22 +2202,27 @@ alchemySteps?.addEventListener('click',event => {
   remove.closest('.alchemy-step')?.remove();
   renumberAlchemySteps();
 });
-recipePhotoInput?.addEventListener('change',event => void setTemporaryPhoto(event.target.files?.[0]));
+recipePhotoInput?.addEventListener('change',event => void setTemporaryPhotos(event.target.files,photoInputMode));
 savedRecipePhotoInput?.addEventListener('change',event => {
   const file = event.target.files?.[0];
   if (savedPhotoTargetId && file) void replaceSavedRecipePhoto(savedPhotoTargetId,file);
 });
-recipePhotoEdit?.addEventListener('click',()=>recipePhotoInput?.click());
-recipePhotoDelete?.addEventListener('click',()=>{
-  if (editingRecipeId) editingPhotoRemoved = true;
-  releasePhotoPreview();
+recipePhotoEdit?.addEventListener('click',()=>{ photoInputMode = 'replace-primary'; recipePhotoInput?.click(); });
+recipePhotoAddMore?.addEventListener('click',()=>{ photoInputMode = 'append'; recipePhotoInput?.click(); });
+recipePhotoDelete?.addEventListener('click',()=>removeEditorPhoto(0));
+recipePhotoGallery?.addEventListener('click',event=>{
+  const remove = event.target.closest('[data-remove-editor-photo]');
+  if (!remove) return;
+  removeEditorPhoto(Number(remove.dataset.removeEditorPhoto));
 });
+photoDropzone?.addEventListener('click',()=>{ photoInputMode = 'append'; });
 photoDropzone?.addEventListener('dragover',event => { event.preventDefault(); photoDropzone.classList.add('is-dragging'); });
 photoDropzone?.addEventListener('dragleave',()=>photoDropzone.classList.remove('is-dragging'));
 photoDropzone?.addEventListener('drop',event => {
   event.preventDefault();
   photoDropzone.classList.remove('is-dragging');
-  void setTemporaryPhoto(event.dataTransfer?.files?.[0]);
+  photoInputMode = 'append';
+  void setTemporaryPhotos(event.dataTransfer?.files,'append');
 });
 
 recipeSearch?.addEventListener('input',renderRecipes);
@@ -1936,6 +2238,12 @@ favoritesBaseFilter?.addEventListener('change',()=>void renderFavorites());
 mobileMenu?.addEventListener('click',()=> sidebar?.classList.contains('is-open') ? closeSidebar() : openSidebar());
 backdrop?.addEventListener('click',closeSidebar);
 window.addEventListener('keydown',event=>{
+  if (photoLightbox && !photoLightbox.hidden) {
+    if (event.key === 'ArrowLeft') { event.preventDefault(); shiftPhotoLightbox(-1); return; }
+    if (event.key === 'ArrowRight') { event.preventDefault(); shiftPhotoLightbox(1); return; }
+    if (event.key === 'Escape') { event.preventDefault(); closePhotoLightbox(); return; }
+    return;
+  }
   if(event.key !== 'Escape') return;
   if (recipeExportModal && !recipeExportModal.hidden) { closeRecipeExportModal(); return; }
   if (recipeDeleteModal && !recipeDeleteModal.hidden) { closeRecipeDeleteModal(); return; }
@@ -1946,9 +2254,25 @@ window.addEventListener('keydown',event=>{
 window.addEventListener('resize',()=>{if(window.innerWidth > 900) closeSidebar();});
 window.addEventListener('hashchange',routeFromHash);
 window.addEventListener('popstate',routeFromHash);
+document.addEventListener('error',event => {
+  const img = event.target;
+  if (!(img instanceof HTMLImageElement)) return;
+  const gallery = img.closest('[data-recipe-gallery]');
+  if (gallery) {
+    gallery.classList.add('is-broken');
+    return;
+  }
+  if (img === photoLightboxImage && photoLightbox && !photoLightbox.hidden) {
+    photoLightbox.classList.add('is-broken');
+    img.hidden = true;
+    if (photoLightboxFallback) photoLightboxFallback.hidden = false;
+  }
+},true);
+
 window.addEventListener('beforeunload',()=>{
-  if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl);
+  releaseEditorPhotoUrls();
   releaseDetailPhotoUrl();
+  releaseLightboxUrls();
   revokeSavedRecipeThumbUrls();
 });
 

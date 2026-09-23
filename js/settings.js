@@ -3,15 +3,14 @@ import { CATALOG_DEFINITIONS, loadCatalogs, saveCatalogs } from './catalog.js';
 import { loadRecipes, saveRecipes, sanitizeRecipeDraft } from './recipes.js';
 import {
   listRecipePhotos, replaceAllRecipePhotos, processRecipePhotoDataUrl,
-  recipePhotoRecordFromProcessed, buildPhotoReference
+  recipePhotoRecordFromEntries, photoEntryFromProcessed, buildPhotoReferences
 } from './media.js';
 
-export const APP_VERSION = '1.11.0';
+export const APP_VERSION = '1.14.0';
 export const BACKUP_SCHEMA_VERSION = 1;
 const SETTINGS_KEY = 'settings.v1';
 const RUNTIME_KEY = 'runtime.pwa.v1';
 const MAX_BACKUP_BYTES = 80 * 1024 * 1024;
-const MAX_PHOTOS = 500;
 
 const $ = id => document.getElementById(id);
 const elements = {};
@@ -238,17 +237,25 @@ function safeSettings(){
 async function buildBackup(){
   const recipes=loadRecipes(storage);
   const catalogs=loadCatalogs(storage);
-  const photos=await listRecipePhotos();
+  const photoRecords=await listRecipePhotos();
   const recipeIds=new Set(recipes.map(recipe=>recipe.id));
   const media=[];
-  for (const photo of photos) {
-    if (!recipeIds.has(String(photo.recipeId)) || !(photo.fullBlob instanceof Blob)) continue;
-    media.push({
-      recipeId:String(photo.recipeId),
-      mime:photo.fullBlob.type || 'application/octet-stream',
-      bytes:photo.fullBlob.size,
-      dataUrl:await blobToDataUrl(photo.fullBlob)
-    });
+  for (const record of photoRecords) {
+    const recipeId=String(record.recipeId||'');
+    if (!recipeIds.has(recipeId)) continue;
+    const photos=Array.isArray(record.photos) ? record.photos : [];
+    for (let index=0; index<photos.length; index+=1) {
+      const photo=photos[index];
+      if (!(photo.fullBlob instanceof Blob)) continue;
+      media.push({
+        recipeId,
+        photoId:String(photo.photoId||`legacy-${recipeId}-${index+1}`),
+        position:index+1,
+        mime:photo.fullBlob.type || 'application/octet-stream',
+        bytes:photo.fullBlob.size,
+        dataUrl:await blobToDataUrl(photo.fullBlob)
+      });
+    }
   }
   return {
     app:'Barra de El Ágora del Sir',
@@ -261,7 +268,7 @@ async function buildBackup(){
       favoritas:recipes.filter(recipe=>recipe.favorita).map(recipe=>recipe.id),
       configuracion:safeSettings()
     },
-    media:{strategy:'embedded-optimized-full-v1',photos:media}
+    media:{strategy:'embedded-optimized-full-v2',photos:media}
   };
 }
 
@@ -316,8 +323,9 @@ function validateCatalogs(catalogs){
 function validateBackup(payload){
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('El archivo no contiene un respaldo JSON válido.');
   if (payload.app !== 'Barra de El Ágora del Sir') throw new Error('Este JSON no pertenece a Barra de El Ágora del Sir.');
-  if (Number(payload.schemaVersion) !== BACKUP_SCHEMA_VERSION) throw new Error(`Versión de respaldo incompatible. Se requiere esquema ${BACKUP_SCHEMA_VERSION}.`);
-  if (!payload.data || typeof payload.data !== 'object') throw new Error('El respaldo no contiene el bloque de datos requerido.');
+  const schema = Number(payload.schemaVersion ?? 1);
+  if (schema !== BACKUP_SCHEMA_VERSION) throw new Error(`Versión de respaldo incompatible. Se requiere esquema ${BACKUP_SCHEMA_VERSION}.`);
+  if (!payload.data || typeof payload.data !== 'object' || Array.isArray(payload.data)) throw new Error('El respaldo no contiene el bloque de datos requerido.');
   if (!Array.isArray(payload.data.recipes)) throw new Error('El respaldo no contiene una lista válida de recetas.');
   if (payload.data.recipes.length > 5000) throw new Error('El respaldo contiene demasiadas recetas para una restauración segura.');
 
@@ -327,33 +335,60 @@ function validateBackup(payload){
     if (!recipe.id || !recipe.nombre) throw new Error('Una receta del respaldo no tiene identificador o nombre válido.');
     if (ids.has(recipe.id)) throw new Error(`El respaldo contiene un identificador de receta duplicado: ${recipe.id}.`);
     ids.add(recipe.id);
-    return {...recipe,foto:null};
+    return {...recipe,foto:null,fotos:[]};
   });
   const catalogs=validateCatalogs(payload.data.catalogs);
-  const favoritas=Array.isArray(payload.data.favoritas) ? payload.data.favoritas.map(String) : [];
+
+  // Respaldos antiguos podían depender solo de recipe.favorita y no traer data.favoritas.
+  const favoritas=Array.isArray(payload.data.favoritas)
+    ? payload.data.favoritas.map(String)
+    : payload.data.recipes.map(raw=>sanitizeRecipeDraft(raw)).filter(recipe=>recipe.favorita).map(recipe=>recipe.id);
   if (favoritas.some(id=>!ids.has(id))) throw new Error('El respaldo contiene una favorita que no corresponde a una receta.');
   const favoriteSet=new Set(favoritas);
   recipes.forEach(recipe=>{ recipe.favorita=favoriteSet.has(recipe.id); });
 
   const config=payload.data.configuracion && typeof payload.data.configuracion === 'object' && !Array.isArray(payload.data.configuracion)
     ? payload.data.configuracion : {};
-  const photos=payload.media?.photos ?? [];
-  if (!Array.isArray(photos)) throw new Error('El bloque de fotografías no es válido.');
-  if (photos.length > MAX_PHOTOS) throw new Error(`El respaldo supera el máximo seguro de ${MAX_PHOTOS} fotografías.`);
-  const photoIds=new Set();
-  const safePhotos=photos.map(photo=>{
-    if (!photo || typeof photo !== 'object') throw new Error('El respaldo contiene una fotografía inválida.');
-    const recipeId=String(photo.recipeId||'');
+
+  // Compatibilidad: v2 actual usa media.photos; respaldos de una foto podían omitir photoId/position.
+  // También se acepta un bloque media como arreglo o media.recipePhotos si proviene de una variante anterior.
+  let photos=[];
+  if (Array.isArray(payload.media)) photos=payload.media;
+  else if (Array.isArray(payload.media?.photos)) photos=payload.media.photos;
+  else if (Array.isArray(payload.media?.recipePhotos)) photos=payload.media.recipePhotos;
+  else if (payload.media == null) photos=[];
+  else if (payload.media && typeof payload.media === 'object' && !Object.hasOwn(payload.media,'photos') && !Object.hasOwn(payload.media,'recipePhotos')) photos=[];
+  else throw new Error('El bloque de fotografías no es válido.');
+
+  const seenPhotos=new Set();
+  const safePhotos=photos.map((photo,sourceIndex)=>{
+    if (!photo || typeof photo !== 'object' || Array.isArray(photo)) throw new Error('El respaldo contiene una fotografía inválida.');
+    const recipeId=String(photo.recipeId || photo.recipe || photo.key || '');
     if (!ids.has(recipeId)) throw new Error('Una fotografía del respaldo no corresponde a ninguna receta.');
-    if (photoIds.has(recipeId)) throw new Error('El respaldo contiene fotografías duplicadas para una receta.');
-    if (typeof photo.dataUrl !== 'string' || !/^data:image\/(?:jpeg|png|webp);base64,/i.test(photo.dataUrl)) throw new Error('Una fotografía no tiene un formato compatible.');
-    if (photo.dataUrl.length > 12 * 1024 * 1024) throw new Error('Una fotografía del respaldo excede el límite seguro.');
-    photoIds.add(recipeId);
-    return {recipeId,dataUrl:photo.dataUrl};
+    const requestedPosition=Number(photo.position);
+    const position=Number.isInteger(requestedPosition) && requestedPosition>0 ? requestedPosition : Number.MAX_SAFE_INTEGER;
+    const photoId=String(photo.photoId || photo.id || `legacy-${recipeId}-${sourceIndex+1}`);
+    const identity=`${recipeId}::${photoId}`;
+    if (seenPhotos.has(identity)) throw new Error('El respaldo contiene una fotografía duplicada.');
+    const dataUrl=photo.dataUrl || photo.fullDataUrl || photo.imageDataUrl || '';
+    if (typeof dataUrl !== 'string' || !/^data:image\/(?:jpeg|png|webp);base64,/i.test(dataUrl)) throw new Error('Una fotografía no tiene un formato compatible.');
+    if (dataUrl.length > 12 * 1024 * 1024) throw new Error('Una fotografía del respaldo excede el límite seguro.');
+    seenPhotos.add(identity);
+    return {recipeId,photoId,position,dataUrl,sourceIndex};
   });
+
+  safePhotos.sort((a,b)=>a.recipeId.localeCompare(b.recipeId,'es',{numeric:true}) || a.position-b.position || a.sourceIndex-b.sourceIndex);
+  let activeRecipeId=null;
+  let sequentialPosition=0;
+  safePhotos.forEach(photo=>{
+    if (photo.recipeId !== activeRecipeId) { activeRecipeId=photo.recipeId; sequentialPosition=0; }
+    sequentialPosition+=1;
+    photo.position=sequentialPosition;
+    delete photo.sourceIndex;
+  });
+
   return {recipes,catalogs,favoritas:[...favoriteSet],config,photos:safePhotos,createdAt:payload.createdAt,appVersion:payload.appVersion};
 }
-
 function openRestoreModal(validated){
   pendingRestore=validated;
   if (elements.restoreConfirmCopy) elements.restoreConfirmCopy.textContent=`Respaldo del ${formatDateTime(validated.createdAt)}${validated.appVersion ? ` · app v${validated.appVersion}` : ''}. Confirma para reemplazar los datos locales actuales.`;
@@ -399,20 +434,31 @@ async function restoreConfirmed(){
     const prepared=[];
     for (const photo of validated.photos) {
       const processed=await processRecipePhotoDataUrl(photo.dataUrl);
-      prepared.push({recipeId:photo.recipeId,processed});
+      prepared.push({recipeId:photo.recipeId,photoId:photo.photoId,position:photo.position,processed});
     }
     const oldRecipes=loadRecipes(storage);
     const oldCatalogs=loadCatalogs(storage);
     const oldSettings=safeSettings();
     const oldPhotos=await listRecipePhotos();
 
-    const nextRecipes=validated.recipes.map(recipe=>({...recipe,foto:null}));
+    const nextRecipes=validated.recipes.map(recipe=>({...recipe,foto:null,fotos:[]}));
     const byId=new Map(nextRecipes.map(recipe=>[recipe.id,recipe]));
-    const newRecords=prepared.map(({recipeId,processed})=>{
-      const recipe=byId.get(recipeId);
-      recipe.foto=buildPhotoReference(recipeId,processed);
-      return recipePhotoRecordFromProcessed(recipeId,processed);
+    const grouped=new Map();
+    prepared.forEach(item=>{
+      if (!grouped.has(item.recipeId)) grouped.set(item.recipeId,[]);
+      grouped.get(item.recipeId).push(item);
     });
+    const newRecords=[];
+    for (const [recipeId,items] of grouped.entries()) {
+      items.sort((a,b)=>a.position-b.position);
+      const entries=items.map(item=>photoEntryFromProcessed(recipeId,item.processed,{photoId:item.photoId}));
+      const recipe=byId.get(recipeId);
+      const references=buildPhotoReferences(recipeId,entries);
+      recipe.fotos=references;
+      recipe.foto=references[0]||null;
+      const record=recipePhotoRecordFromEntries(recipeId,entries);
+      if (record) newRecords.push(record);
+    }
 
     try {
       await replaceAllRecipePhotos(newRecords);

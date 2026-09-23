@@ -42,6 +42,57 @@ function transactionDone(transaction){
   });
 }
 
+function makePhotoId(recipeId,index = 0){
+  return globalThis.crypto?.randomUUID?.()
+    || `${String(recipeId || 'receta')}-foto-${Date.now()}-${index}-${Math.random().toString(36).slice(2,9)}`;
+}
+
+function normalizePhotoEntry(recipeId,value,index = 0){
+  if (!value || typeof value !== 'object') return null;
+  const fullBlob = value.fullBlob instanceof Blob ? value.fullBlob : null;
+  const thumbnailBlob = value.thumbnailBlob instanceof Blob ? value.thumbnailBlob : null;
+  if (!fullBlob || !thumbnailBlob) return null;
+  const photoId = String(value.photoId || value.id || `legacy-${recipeId}-${index + 1}`);
+  return {
+    photoId,
+    fullBlob,
+    thumbnailBlob,
+    metadata:{...(value.metadata || {})},
+    createdAt:String(value.createdAt || value.updatedAt || ''),
+    updatedAt:String(value.updatedAt || '')
+  };
+}
+
+function normalizeRecipeMediaRecord(record){
+  if (!record || typeof record !== 'object' || !record.recipeId) return null;
+  const recipeId = String(record.recipeId);
+  let photos = Array.isArray(record.photos)
+    ? record.photos.map((photo,index)=>normalizePhotoEntry(recipeId,photo,index)).filter(Boolean)
+    : [];
+
+  if (!photos.length && record.fullBlob instanceof Blob && record.thumbnailBlob instanceof Blob) {
+    const legacy = normalizePhotoEntry(recipeId,{
+      photoId:`legacy-${recipeId}-1`,
+      fullBlob:record.fullBlob,
+      thumbnailBlob:record.thumbnailBlob,
+      metadata:{...(record.metadata || {})},
+      createdAt:record.updatedAt || '',
+      updatedAt:record.updatedAt || ''
+    },0);
+    if (legacy) photos = [legacy];
+  }
+
+  const primary = photos[0] || null;
+  return {
+    recipeId,
+    photos,
+    fullBlob:primary?.fullBlob || null,
+    thumbnailBlob:primary?.thumbnailBlob || null,
+    metadata:primary ? {...primary.metadata} : {},
+    updatedAt:String(record.updatedAt || primary?.updatedAt || '')
+  };
+}
+
 async function decodeBitmap(file){
   if ('createImageBitmap' in globalThis) {
     try {
@@ -145,29 +196,69 @@ export async function optimizeRecipePhoto(file){
   }
 }
 
-export function buildPhotoReference(recipeId,processed,now = new Date()){
+export function photoEntryFromProcessed(recipeId,processed,{photoId=null,createdAt=null,updatedAt=null} = {}){
+  if (!recipeId || !processed?.fullBlob || !processed?.thumbnailBlob) throw new Error('Fotografía procesada inválida.');
+  const now = new Date().toISOString();
+  return {
+    photoId:String(photoId || makePhotoId(recipeId)),
+    fullBlob:processed.fullBlob,
+    thumbnailBlob:processed.thumbnailBlob,
+    metadata:{...(processed.metadata || {})},
+    createdAt:String(createdAt || now),
+    updatedAt:String(updatedAt || now)
+  };
+}
+
+export function buildPhotoReference(recipeId,processed,now = new Date(),options = {}){
   if (!processed?.metadata || !recipeId) return null;
+  const photoId = String(options.photoId || processed.photoId || `legacy-${recipeId}-1`);
+  const position = Number.isFinite(Number(options.position)) && Number(options.position) > 0 ? Number(options.position) : 1;
   return {
     ...processed.metadata,
     key:String(recipeId),
+    photoId,
+    position,
     updatedAt:now.toISOString()
   };
+}
+
+export function buildPhotoReferences(recipeId,entries,now = new Date()){
+  const safe = Array.isArray(entries) ? entries : [];
+  return safe.map((entry,index)=>buildPhotoReference(recipeId,{metadata:{...(entry.metadata || {})},photoId:entry.photoId},now,{
+    photoId:entry.photoId,
+    position:index + 1
+  })).filter(Boolean);
+}
+
+export async function saveRecipePhotoCollection(recipeId,entries){
+  if (!recipeId) throw new Error('No hay una receta válida para guardar fotografías.');
+  const safe = (Array.isArray(entries) ? entries : [])
+    .map((entry,index)=>normalizePhotoEntry(String(recipeId),entry,index))
+    .filter(Boolean);
+  const db = await openMediaDb();
+  const transaction = db.transaction(STORE_NAME,'readwrite');
+  const store = transaction.objectStore(STORE_NAME);
+  if (!safe.length) {
+    store.delete(String(recipeId));
+  } else {
+    const primary = safe[0];
+    store.put({
+      recipeId:String(recipeId),
+      photos:safe,
+      fullBlob:primary.fullBlob,
+      thumbnailBlob:primary.thumbnailBlob,
+      metadata:{...primary.metadata},
+      updatedAt:new Date().toISOString()
+    });
+  }
+  await transactionDone(transaction);
 }
 
 export async function saveRecipePhoto(recipeId,processed){
   if (!recipeId || !processed?.fullBlob || !processed?.thumbnailBlob) {
     throw new Error('No hay una fotografía optimizada para guardar.');
   }
-  const db = await openMediaDb();
-  const transaction = db.transaction(STORE_NAME,'readwrite');
-  transaction.objectStore(STORE_NAME).put({
-    recipeId:String(recipeId),
-    fullBlob:processed.fullBlob,
-    thumbnailBlob:processed.thumbnailBlob,
-    metadata:{...processed.metadata},
-    updatedAt:new Date().toISOString()
-  });
-  await transactionDone(transaction);
+  await saveRecipePhotoCollection(recipeId,[photoEntryFromProcessed(recipeId,processed)]);
 }
 
 export async function getRecipePhoto(recipeId){
@@ -176,9 +267,14 @@ export async function getRecipePhoto(recipeId){
   return new Promise((resolve,reject) => {
     const transaction = db.transaction(STORE_NAME,'readonly');
     const request = transaction.objectStore(STORE_NAME).get(String(recipeId));
-    request.onsuccess = () => resolve(request.result || null);
+    request.onsuccess = () => resolve(normalizeRecipeMediaRecord(request.result || null));
     request.onerror = () => reject(request.error || new Error('No fue posible leer la fotografía.'));
   });
+}
+
+export async function getRecipePhotos(recipeId){
+  const record = await getRecipePhoto(recipeId);
+  return record?.photos || [];
 }
 
 export async function deleteRecipePhoto(recipeId){
@@ -188,7 +284,6 @@ export async function deleteRecipePhoto(recipeId){
   transaction.objectStore(STORE_NAME).delete(String(recipeId));
   await transactionDone(transaction);
 }
-
 
 function requestResult(request,message){
   return new Promise((resolve,reject) => {
@@ -202,7 +297,7 @@ export async function listRecipePhotos(){
   const transaction = db.transaction(STORE_NAME,'readonly');
   const store = transaction.objectStore(STORE_NAME);
   const result = await requestResult(store.getAll(),'No fue posible leer las fotografías para el respaldo.');
-  return Array.isArray(result) ? result : [];
+  return (Array.isArray(result) ? result : []).map(normalizeRecipeMediaRecord).filter(Boolean);
 }
 
 export async function clearAllRecipePhotos(){
@@ -231,12 +326,15 @@ export async function processRecipePhotoDataUrl(dataUrl){
 export async function restoreRecipePhotoFromDataUrl(recipeId,dataUrl){
   if (!recipeId) throw new Error('La fotografía del respaldo no está ligada a una receta.');
   const processed = await processRecipePhotoDataUrl(dataUrl);
-  await saveRecipePhoto(recipeId,processed);
-  return buildPhotoReference(recipeId,processed);
+  const entry = photoEntryFromProcessed(recipeId,processed);
+  await saveRecipePhotoCollection(recipeId,[entry]);
+  return buildPhotoReference(recipeId,{...processed,photoId:entry.photoId},new Date(),{photoId:entry.photoId,position:1});
 }
 
 export async function replaceAllRecipePhotos(records){
-  const safeRecords = Array.isArray(records) ? records.filter(record => record && record.recipeId) : [];
+  const safeRecords = Array.isArray(records)
+    ? records.map(normalizeRecipeMediaRecord).filter(record => record && record.recipeId && record.photos.length)
+    : [];
   const db = await openMediaDb();
   const transaction = db.transaction(STORE_NAME,'readwrite');
   const store = transaction.objectStore(STORE_NAME);
@@ -246,12 +344,29 @@ export async function replaceAllRecipePhotos(records){
 }
 
 export function recipePhotoRecordFromProcessed(recipeId,processed,now = new Date()){
-  if (!recipeId || !processed?.fullBlob || !processed?.thumbnailBlob) throw new Error('Fotografía procesada inválida.');
+  const entry = photoEntryFromProcessed(recipeId,processed,{createdAt:now.toISOString(),updatedAt:now.toISOString()});
   return {
     recipeId:String(recipeId),
-    fullBlob:processed.fullBlob,
-    thumbnailBlob:processed.thumbnailBlob,
-    metadata:{...processed.metadata},
+    photos:[entry],
+    fullBlob:entry.fullBlob,
+    thumbnailBlob:entry.thumbnailBlob,
+    metadata:{...entry.metadata},
+    updatedAt:now.toISOString()
+  };
+}
+
+export function recipePhotoRecordFromEntries(recipeId,entries,now = new Date()){
+  const safe = (Array.isArray(entries) ? entries : [])
+    .map((entry,index)=>normalizePhotoEntry(String(recipeId),entry,index))
+    .filter(Boolean);
+  if (!safe.length) return null;
+  const primary = safe[0];
+  return {
+    recipeId:String(recipeId),
+    photos:safe,
+    fullBlob:primary.fullBlob,
+    thumbnailBlob:primary.thumbnailBlob,
+    metadata:{...primary.metadata},
     updatedAt:now.toISOString()
   };
 }

@@ -296,7 +296,7 @@
             <div class="pwa-status-list" aria-live="polite">
               <div class="status-row"><span class="status-icon is-ok" aria-hidden="true">✓</span><span>Estado de instalación</span><strong id="pwaInstallStatus">Comprobando…</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">◈</span><span>Service Worker</span><strong id="pwaSwStatus">Comprobando…</strong></div>
-              <div class="status-row"><span class="status-icon" aria-hidden="true">#</span><span>Versión actual</span><strong id="pwaCurrentVersion">v1.11.0</strong></div>
+              <div class="status-row"><span class="status-icon" aria-hidden="true">#</span><span>Versión actual</span><strong id="pwaCurrentVersion">v1.14.0</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">⌕</span><span>Última búsqueda</span><strong id="pwaLastSearch">Nunca</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">◷</span><span>Última actualización</span><strong id="pwaLastUpdate">Nunca</strong></div>
             </div>
@@ -397,19 +397,24 @@
                 </div>
                 <div class="photo-workspace">
                   <label class="photo-dropzone" for="recipePhotoInput">
-                    <input id="recipePhotoInput" type="file" accept="image/png,image/jpeg" hidden>
+                    <input id="recipePhotoInput" type="file" accept="image/png,image/jpeg" multiple hidden>
                     <span class="photo-camera" aria-hidden="true">▣</span>
-                    <strong>Haz clic para subir una imagen</strong>
+                    <strong>Haz clic para subir una o varias imágenes</strong>
                     <small>o arrastra y suelta aquí</small>
-                    <em>JPG, PNG · Máx. 5 MB</em>
+                    <em>JPG, PNG · Máx. 5 MB por imagen</em>
                   </label>
-                  <div class="photo-preview" id="recipePhotoPreview" aria-label="Vista previa de la fotografía">
-                    <div class="photo-preview-empty" id="recipePhotoEmpty"><span aria-hidden="true">◇</span><strong>Vista previa</strong><small>La fotografía se optimizará y guardará localmente.</small></div>
+                  <div class="photo-preview" id="recipePhotoPreview" aria-label="Vista previa de la fotografía principal">
+                    <div class="photo-preview-empty" id="recipePhotoEmpty"><span aria-hidden="true">◇</span><strong>Vista previa</strong><small>La primera fotografía será la imagen principal.</small></div>
                     <img id="recipePhotoImage" alt="Vista previa de la bebida" hidden>
-                    <button class="photo-action photo-edit" id="recipePhotoEdit" type="button" aria-label="Cambiar fotografía">✎</button>
-                    <button class="photo-action photo-delete" id="recipePhotoDelete" type="button" aria-label="Quitar fotografía">×</button>
+                    <button class="photo-action photo-edit" id="recipePhotoEdit" type="button" aria-label="Cambiar fotografía principal" title="Cambiar fotografía principal">✎</button>
+                    <button class="photo-action photo-delete" id="recipePhotoDelete" type="button" aria-label="Eliminar fotografía principal" title="Eliminar fotografía principal">×</button>
                   </div>
                 </div>
+                <div class="photo-collection-tools">
+                  <button class="secondary-action photo-add-more" id="recipePhotoAddMore" type="button" aria-label="Agregar otra imagen">＋ Agregar otra imagen</button>
+                  <span id="recipePhotoCount" class="photo-count" aria-live="polite">0 fotografías</span>
+                </div>
+                <div class="photo-gallery-editor" id="recipePhotoGallery" aria-label="Fotografías agregadas" hidden></div>
               </section>
 
               <section class="recipe-block identity-block" aria-label="Datos principales de la receta">
@@ -591,6 +596,20 @@
       <div class="modal-actions export-modal-actions">
         <button class="secondary-action modal-secondary" id="recipeExportCancelBtn" type="button">Cancelar</button>
       </div>
+    </section>
+  </div>
+
+  <div class="photo-lightbox" id="photoLightbox" hidden>
+    <div class="photo-lightbox-backdrop" data-close-photo-viewer></div>
+    <section class="photo-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Visor de fotografías">
+      <button class="photo-lightbox-close" id="photoLightboxClose" type="button" data-close-photo-viewer aria-label="Cerrar visor">×</button>
+      <button class="photo-lightbox-nav photo-lightbox-prev" id="photoLightboxPrev" type="button" data-lightbox-shift="-1" aria-label="Fotografía anterior">‹</button>
+      <div class="photo-lightbox-stage">
+        <img id="photoLightboxImage" alt="">
+        <div class="photo-lightbox-fallback" id="photoLightboxFallback" hidden><span aria-hidden="true">◇</span><strong>Fotografía no disponible</strong><small>Puedes continuar con las demás imágenes.</small></div>
+      </div>
+      <button class="photo-lightbox-nav photo-lightbox-next" id="photoLightboxNext" type="button" data-lightbox-shift="1" aria-label="Fotografía siguiente">›</button>
+      <div class="photo-lightbox-indicator" id="photoLightboxIndicator" aria-live="polite" hidden></div>
     </section>
   </div>
 

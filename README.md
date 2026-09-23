@@ -1,29 +1,14 @@
-# Barra de El Ágora del Sir — Exportación Final Hardened
+# Barra de El Ágora del Sir — Fotografías múltiples — Final Hardened
 
-Versión 1.11.0 construida exclusivamente sobre la Etapa 1/2 de exportación. Completa la Etapa 2/2 sin reconstruir la aplicación ni alterar sus reglas de negocio.
+Versión 1.14.0 construida exclusivamente sobre `Barra_Agora_FotosMultiples_Etapa2_Galeria.zip`.
 
-## Exportación final
-- Acción compacta **Exportar** con alcance: Esta receta, Seleccionadas y Todas.
-- Modo selección temporal con checkboxes, contador, cancelación y bloqueo contra exportación vacía.
-- PNG/JPG individual cuando solo hay una receta.
-- PNG/JPG múltiples dentro de un único ZIP local válido, sin CDN ni dependencia externa.
-- Resolución automática de colisiones de nombres de archivo sanitizados.
-- PDF individual o un único PDF multipágina vertical para varias recetas; cada receta comienza separada y puede continuar en páginas adicionales.
-- Orden A-Z estable para Seleccionadas y Todas usando el mismo comparador de la biblioteca.
-- Fotografía actual o placeholder; preparación interna para varias fotos preservada.
-- Regla **Al gusto** preservada para cantidad 0 y unidad vacía en todas las modalidades.
-- Estado de generación con conteo real de recetas, bloqueo de doble pulsación y recuperación de UI ante éxito o error.
-- Manejo de fotografías no disponibles, errores de imagen/ZIP/PDF y fallos de memoria detectables.
+## Cierre final
 
-## Persistencia y regresión
-- La selección no se guarda como dato operativo.
-- Exportar no modifica recetas, favoritas, catálogos, fotografías ni configuración.
-- Recetas, catálogos y configuración continúan en LocalStorage.
-- Fotografías y miniaturas continúan en IndexedDB.
-- Respaldo/restauración JSON conserva el esquema 1.
-- Service Worker y caché actualizados a 1.11.0 conservando los almacenes locales.
-- Sin dependencias nuevas, sin CDN y sin logs de depuración.
-
-## Versión
-- App/PWA: 1.11.0
-- Esquema de respaldo JSON: 1
+- La primera fotografía sigue siendo la principal en Recetas, Por Base, Favoritas, ficha, miniaturas y exportación.
+- Galería y visor conservan navegación circular, contador, X, Escape, teclado y comportamiento táctil.
+- JSON respalda y restaura cero, una o múltiples fotografías conservando orden y compatibilidad con respaldos antiguos de una sola foto.
+- La restauración valida antes de reemplazar datos y mantiene rollback si falla la escritura local.
+- Exportación individual, seleccionadas y todas conserva la ficha aprobada y usa solo la foto principal; si esa foto no puede decodificarse, intenta temporalmente la siguiente válida sin cambiar el orden guardado; si ninguna sirve, usa placeholder.
+- “Al gusto” permanece activo para cantidad 0 sin unidad en ficha y exportaciones.
+- Service Worker/cache actualizado a v1.14.0, sin dependencias CDN y conservando datos locales durante actualización.
+- Sin selector manual de principal, sin reordenamiento de fotos y sin rediseño de la ficha exportada.
