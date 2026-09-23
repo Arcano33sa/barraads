@@ -17,3 +17,11 @@
 - Se respeta `safe-area-inset-top` y se garantiza una separación mínima visual.
 - Sin cambios en escritorio, iPad horizontal, móvil ni en la lógica de navegación.
 
+
+
+## Ajuste v1.14.9 — Al gusto
+
+- Cantidad vacía ya no se representa ni interpreta visualmente como `0`.
+- `0` real + unidad vacía se conserva como **Al gusto** en creación, edición, duplicado, persistencia y exportación.
+- Ficha y exportaciones distinguen explícitamente entre cantidad ausente y cero real.
+- Caché PWA actualizado a v1.14.9.

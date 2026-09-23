@@ -49,7 +49,8 @@ export function sanitizeRecipeDraft(draft){
   const ingredientes = Array.isArray(source.ingredientes)
     ? source.ingredientes.map(row => {
         const rawCantidad = row?.cantidad;
-        const hasCantidad = rawCantidad !== null && rawCantidad !== undefined && String(rawCantidad).trim() !== '';
+        const isNumericSource = typeof rawCantidad === 'number' || typeof rawCantidad === 'string';
+        const hasCantidad = isNumericSource && rawCantidad !== null && rawCantidad !== undefined && String(rawCantidad).trim() !== '';
         const parsedCantidad = hasCantidad ? Number(rawCantidad) : NaN;
         const cantidad = Number.isFinite(parsedCantidad) && parsedCantidad >= 0 ? parsedCantidad : null;
         return {

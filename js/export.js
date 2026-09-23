@@ -149,7 +149,10 @@ function drawChips(ctx,values,x,y,maxWidth){
 }
 
 function ingredientAmount(row){
-  const amount = Number(row?.cantidad);
+  const raw = row?.cantidad;
+  const hasAmount = raw !== null && raw !== undefined && String(raw).trim() !== '';
+  if (!hasAmount) return '';
+  const amount = Number(raw);
   if (Number.isFinite(amount) && amount === 0) return 'Al gusto';
   const amountText = Number.isFinite(amount)
     ? new Intl.NumberFormat('es-NI',{maximumFractionDigits:2}).format(amount)

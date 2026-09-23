@@ -719,9 +719,12 @@ function formatRecipeAmount(value){
 }
 
 function formatIngredientAmount(row){
-  const amount = Number(row?.cantidad);
+  const raw = row?.cantidad;
+  const hasAmount = raw !== null && raw !== undefined && String(raw).trim() !== '';
+  if (!hasAmount) return '';
+  const amount = Number(raw);
   if (Number.isFinite(amount) && amount === 0) return 'Al gusto';
-  return [formatRecipeAmount(row?.cantidad),row?.unidad || ''].filter(Boolean).join(' ');
+  return [formatRecipeAmount(raw),row?.unidad || ''].filter(Boolean).join(' ');
 }
 
 function statusClass(value){
@@ -1496,7 +1499,7 @@ function addIngredientRow(data = {}){
   row.className = 'ingredient-row';
   row.innerHTML = `
     <select data-ingredient-name aria-label="Ingrediente">${makeOptions(catalogs.ingredientes,data.ingrediente || '','Ingrediente')}</select>
-    <input data-ingredient-amount type="number" inputmode="decimal" min="0" step="any" aria-label="Cantidad" placeholder="0" value="${escapeHtml(data.cantidad ?? '')}">
+    <input data-ingredient-amount type="number" inputmode="decimal" min="0" step="any" aria-label="Cantidad" value="${escapeHtml(data.cantidad ?? '')}">
     <select data-ingredient-unit aria-label="Unidad">${makeOptions(catalogs.unidades,data.unidad || '','Unidad')}</select>
     <button class="row-delete" type="button" data-remove-ingredient aria-label="Eliminar ingrediente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5"/></svg></button>`;
   ingredientsRows.append(row);

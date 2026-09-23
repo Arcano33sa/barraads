@@ -1,5 +1,5 @@
 {
-  "version": "1.14.8",
+  "version": "1.14.9",
   "schemaVersion": 1,
-  "notes": "Ajuste iPad/tablet vertical: botón Menú separado de la barra de estado mediante safe area superior, sin cambios en otros formatos."
+  "notes": "Corrección Al gusto: cantidad 0 real, unidad vacía y distinción estricta entre cantidad vacía y cero en formulario, ficha y exportaciones."
 }
