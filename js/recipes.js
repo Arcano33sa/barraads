@@ -1,0 +1,117 @@
+export const RECIPE_STORAGE_KEY = 'recipes.v1';
+
+const cleanString = value => String(value ?? '').trim().replace(/\s+/g,' ');
+
+const cleanArray = value => Array.isArray(value)
+  ? value.map(cleanString).filter(Boolean)
+  : [];
+
+function sanitizePhotoReference(value){
+  const source = value && typeof value === 'object' ? value : null;
+  if (!source || source.storage !== 'indexeddb' || !cleanString(source.key)) return null;
+  const numberOrNull = input => Number.isFinite(Number(input)) && Number(input) > 0 ? Number(input) : null;
+  return {
+    storage:'indexeddb',
+    key:cleanString(source.key),
+    mime:cleanString(source.mime),
+    width:numberOrNull(source.width),
+    height:numberOrNull(source.height),
+    thumbnailMime:cleanString(source.thumbnailMime),
+    thumbnailWidth:numberOrNull(source.thumbnailWidth),
+    thumbnailHeight:numberOrNull(source.thumbnailHeight),
+    originalMime:cleanString(source.originalMime),
+    originalBytes:numberOrNull(source.originalBytes),
+    optimizedBytes:numberOrNull(source.optimizedBytes),
+    thumbnailBytes:numberOrNull(source.thumbnailBytes),
+    updatedAt:cleanString(source.updatedAt)
+  };
+}
+
+export function sanitizeRecipeDraft(draft){
+  const source = draft && typeof draft === 'object' ? draft : {};
+  const ingredientes = Array.isArray(source.ingredientes)
+    ? source.ingredientes.map(row => {
+        const cantidad = Number(row?.cantidad);
+        return {
+          ingrediente: cleanString(row?.ingrediente),
+          cantidad: Number.isFinite(cantidad) && cantidad > 0 ? cantidad : null,
+          unidad: cleanString(row?.unidad)
+        };
+      }).filter(row => row.ingrediente || row.cantidad !== null || row.unidad)
+    : [];
+
+  const alquimia = Array.isArray(source.alquimia)
+    ? source.alquimia.map((step,index) => ({
+        orden:index + 1,
+        texto:cleanString(typeof step === 'string' ? step : step?.texto)
+      })).filter(step => step.texto)
+    : [];
+
+  const recipe = {
+    id: cleanString(source.id),
+    nombre: cleanString(source.nombre),
+    basePrincipal: cleanString(source.basePrincipal),
+    basesSecundarias: cleanArray(source.basesSecundarias),
+    categoria: cleanString(source.categoria),
+    cristaleria: cleanString(source.cristaleria),
+    ingredientes,
+    tecnicas: cleanArray(source.tecnicas),
+    alquimia,
+    decoracion: cleanString(source.decoracion),
+    etiquetas: cleanArray(source.etiquetas),
+    notas: String(source.notas ?? '').trim(),
+    estado: ['En prueba','Aprobada','Descartada'].includes(source.estado) ? source.estado : 'En prueba',
+    favorita:Boolean(source.favorita),
+    foto:sanitizePhotoReference(source.foto),
+    createdAt: cleanString(source.createdAt),
+    updatedAt: cleanString(source.updatedAt)
+  };
+
+  recipe.basesSecundarias = recipe.basesSecundarias.filter(value => value !== recipe.basePrincipal);
+  return recipe;
+}
+
+export function validateRecipe(recipe){
+  const errors = [];
+  if (!recipe.nombre) errors.push({field:'recipeName',message:'Escribe el nombre de la bebida.'});
+  if (!recipe.basePrincipal) errors.push({field:'recipeBasePrimary',message:'Selecciona una base principal.'});
+  if (!recipe.categoria) errors.push({field:'recipeCategory',message:'Selecciona una categoría.'});
+  if (!recipe.cristaleria) errors.push({field:'recipeGlassware',message:'Selecciona la cristalería.'});
+
+  if (!recipe.ingredientes.length) {
+    errors.push({field:'ingredientsRows',message:'Añade al menos un ingrediente.'});
+  } else {
+    const invalidIngredient = recipe.ingredientes.find(row => !row.ingrediente || !Number.isFinite(row.cantidad) || row.cantidad <= 0 || !row.unidad);
+    if (invalidIngredient) errors.push({field:'ingredientsRows',message:'Completa ingrediente, cantidad mayor que 0 y unidad en todas las filas.'});
+  }
+
+  if (!recipe.alquimia.length) errors.push({field:'alchemySteps',message:'Añade al menos un paso de ALQUIMIA.'});
+  return errors;
+}
+
+export function loadRecipes(storage){
+  const saved = storage.get(RECIPE_STORAGE_KEY,[]);
+  if (!Array.isArray(saved)) return [];
+  return saved
+    .map(sanitizeRecipeDraft)
+    .filter(recipe => recipe.id && recipe.nombre);
+}
+
+export function saveRecipes(storage,recipes){
+  const safe = Array.isArray(recipes)
+    ? recipes.map(sanitizeRecipeDraft).filter(recipe => recipe.id && recipe.nombre)
+    : [];
+  storage.set(RECIPE_STORAGE_KEY,safe);
+  return safe;
+}
+
+export function createRecipeRecord(draft,now = new Date()){
+  const recipe = sanitizeRecipeDraft(draft);
+  const timestamp = now.toISOString();
+  const randomId = globalThis.crypto?.randomUUID?.()
+    || `receta-${Date.now()}-${Math.random().toString(36).slice(2,9)}`;
+  recipe.id = recipe.id || randomId;
+  recipe.createdAt = recipe.createdAt || timestamp;
+  recipe.updatedAt = timestamp;
+  return recipe;
+}

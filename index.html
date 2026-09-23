@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a2038">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="El Ágora del Sir">
+  <title>Barra de El Ágora del Sir</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./assets/icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell" id="appShell">
+    <aside class="sidebar" id="sidebar" aria-label="Navegación principal">
+      <div class="sidebar-time" id="sidebarTime" aria-label="Hora actual">9:41</div>
+
+      <div class="brand-block">
+        <img class="brand-shield" src="./assets/escudo-agora.png" alt="Escudo oficial de El Ágora del Sir">
+        <div class="brand-title"><span>Barra de</span><strong>El Ágora del Sir</strong></div>
+        <div class="brand-rule" aria-hidden="true"><span></span><i></i><span></span></div>
+        <p class="brand-motto">Buenas bebidas<br>Mejores conversaciones<br>Siempre aprendiendo</p>
+      </div>
+
+      <nav class="main-nav" id="mainNav" aria-label="Secciones">
+        <button class="nav-item is-active" data-view="inicio" type="button">
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 10.7 12 3l9 7.7v9.1a1.2 1.2 0 0 1-1.2 1.2h-5.2v-6.2H9.4V21H4.2A1.2 1.2 0 0 1 3 19.8z"/></svg></span><span>Inicio</span>
+        </button>
+        <button class="nav-item" data-view="recetas" type="button">
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h12l-2 6.5a4.2 4.2 0 0 1-8 0zm6 10v7m-4 1h8"/></svg></span><span>Recetas</span>
+        </button>
+        <button class="nav-item" data-view="por-base" type="button">
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5.5c2.8-1 5.4-.7 8 .9v13c-2.6-1.6-5.2-1.9-8-.9zm16 0c-2.8-1-5.4-.7-8 .9v13c2.6-1.6 5.2-1.9 8-.9z"/></svg></span><span>Por base</span>
+        </button>
+        <button class="nav-item" data-view="favoritas" type="button">
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 2.8 2.85 5.78 6.38.93-4.62 4.5 1.09 6.35L12 17.37l-5.7 3 1.09-6.35-4.62-4.5 6.38-.93z"/></svg></span><span>Favoritas</span>
+        </button>
+        <button class="nav-item" data-view="catalogo" type="button">
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h4v15H4zm6-2h4v17h-4zm6 4h4v13h-4z"/></svg></span><span>Catálogo</span>
+        </button>
+        <button class="nav-item" data-view="configuracion" type="button">
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 8.1a3.9 3.9 0 1 1 0 7.8 3.9 3.9 0 0 1 0-7.8Zm7.7 2.1 1.3 1.8-1.3 1.8.25 2.2-2.05.9-1.12 1.92-2.2-.43L12.8 20h-1.6l-1.78-1.61-2.2.43-1.12-1.92-2.05-.9.25-2.2L3 12l1.3-1.8-.25-2.2 2.05-.9 1.12-1.92 2.2.43L11.2 4h1.6l1.78 1.61 2.2-.43 1.12 1.92 2.05.9z"/></svg></span><span>Configuración</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <p>“Más que bebidas,<br>historias en una copa.”</p>
+        <span></span>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobileMenu" type="button" aria-label="Abrir menú" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="topbar-spacer"></div>
+        <button class="icon-button" type="button" aria-label="Notificaciones">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 9.7A5.5 5.5 0 0 1 12 4.2a5.5 5.5 0 0 1 5.5 5.5v4.4l1.7 2.5H4.8l1.7-2.5zm3.4 9a2.3 2.3 0 0 0 4.2 0"/></svg>
+          <span class="notification-dot"></span>
+        </button>
+        <div class="profile-mark" aria-hidden="true">S</div>
+        <span class="profile-name">Sir</span>
+        <svg class="profile-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9.5 5 5 5-5"/></svg>
+      </header>
+
+      <section class="view is-visible" id="view-inicio" data-view-panel="inicio">
+        <div class="hero-row">
+          <div>
+            <p class="eyebrow">Bienvenido a tu barra</p>
+            <h1>Descubre. Mezcla. Disfruta.</h1>
+          </div>
+          <blockquote>“Un buen trago también<br>es una forma de conocimiento.”</blockquote>
+        </div>
+
+        <div class="action-row" aria-label="Herramientas de exploración">
+          <label class="search-box" for="recipeSearch">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.4"/><path d="m15.6 15.6 5 5"/></svg>
+            <input id="recipeSearch" type="search" autocomplete="off" placeholder="Buscar recetas, ingredientes, técnicas..." aria-label="Buscar recetas, ingredientes o técnicas">
+          </label>
+
+          <label class="filter-box" for="baseFilter">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6.2 7v5.8l-3.6 1.8V12z"/></svg>
+            <select id="baseFilter" aria-label="Filtrar por base">
+              <option value="all">Todas las bases</option>
+            </select>
+            <svg class="select-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9.5 5 5 5-5"/></svg>
+          </label>
+
+          <button class="primary-button" data-view="nueva-receta" type="button">
+            <span aria-hidden="true">＋</span>Nueva receta
+          </button>
+        </div>
+
+        <section class="library-card" aria-labelledby="por-base-title">
+          <div class="section-heading">
+            <h2 id="por-base-title">Por Base</h2>
+            <div class="section-kicker"><span></span>Explora tu biblioteca de recetas</div>
+          </div>
+
+          <div id="baseGroups" class="base-groups" aria-live="polite"></div>
+          <div id="emptyState" class="empty-state" hidden>
+            <strong>No hay coincidencias.</strong>
+            <span>Prueba otra búsqueda o cambia la base seleccionada.</span>
+          </div>
+        </section>
+      </section>
+
+      <section class="view stage7-library-view" id="view-recetas" data-view-panel="recetas">
+        <div class="hero-row stage7-hero">
+          <div>
+            <p class="eyebrow">Recetas</p>
+            <h1>Biblioteca de Recetas</h1>
+            <p class="hero-subtitle">Explora, descubre y guarda cócteles para cada ocasión.</p>
+          </div>
+          <blockquote>“Un buen trago también<br>es una forma de conocimiento.”</blockquote>
+        </div>
+
+        <div class="stage7-toolbar recipes-toolbar" aria-label="Herramientas de biblioteca">
+          <label class="search-box" for="libraryRecipeSearch">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.4"/><path d="m15.6 15.6 5 5"/></svg>
+            <input id="libraryRecipeSearch" type="search" autocomplete="off" placeholder="Buscar recetas, ingredientes, técnicas..." aria-label="Buscar recetas">
+          </label>
+          <label class="stage7-select" for="librarySort">
+            <span aria-hidden="true">↕</span>
+            <select id="librarySort" aria-label="Orden de recetas"><option value="az">A - Z</option><option value="za">Z - A</option></select>
+          </label>
+          <label class="stage7-select" for="libraryBaseFilter">
+            <span aria-hidden="true">◈</span>
+            <select id="libraryBaseFilter" aria-label="Filtrar recetas por base"><option value="all">Base</option></select>
+          </label>
+          <label class="stage7-select" for="libraryCategoryFilter">
+            <span aria-hidden="true">◇</span>
+            <select id="libraryCategoryFilter" aria-label="Filtrar recetas por categoría"><option value="all">Categoría</option></select>
+          </label>
+          <button class="primary-button" data-view="nueva-receta" type="button"><span aria-hidden="true">＋</span>Nueva receta</button>
+        </div>
+
+        <section class="stage7-paper-card recipe-library-card" aria-labelledby="recipeLibraryTitle">
+          <div class="stage7-card-heading">
+            <h2 id="recipeLibraryTitle" class="sr-only">Todas las recetas</h2>
+            <div></div>
+            <div class="section-kicker"><span></span>Todas las recetas en orden alfabético</div>
+          </div>
+          <div id="recipeLibraryGroups" class="recipe-library-groups" aria-live="polite"></div>
+          <div id="recipeLibraryEmpty" class="empty-state stage7-empty" hidden>
+            <strong>No hay recetas que coincidan.</strong>
+            <span>Prueba otra búsqueda o cambia los filtros.</span>
+          </div>
+        </section>
+        <input id="savedRecipePhotoInput" type="file" accept="image/png,image/jpeg" hidden>
+      </section>
+
+      <section class="view stage7-library-view" id="view-por-base" data-view-panel="por-base">
+        <div class="hero-row stage7-hero">
+          <div>
+            <p class="eyebrow">Bienvenido a tu barra</p>
+            <h1>Descubre. Mezcla. Disfruta.</h1>
+          </div>
+          <blockquote>“Un buen trago también<br>es una forma de conocimiento.”</blockquote>
+        </div>
+        <div class="stage7-toolbar base-library-toolbar" aria-label="Herramientas de exploración por base">
+          <label class="search-box" for="baseLibrarySearch">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.4"/><path d="m15.6 15.6 5 5"/></svg>
+            <input id="baseLibrarySearch" type="search" autocomplete="off" placeholder="Buscar recetas, ingredientes, técnicas..." aria-label="Buscar en recetas por base">
+          </label>
+          <label class="filter-box" for="baseLibraryFilter">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6.2 7v5.8l-3.6 1.8V12z"/></svg>
+            <select id="baseLibraryFilter" aria-label="Filtrar grupos por base"><option value="all">Todas las bases</option></select>
+            <svg class="select-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9.5 5 5 5-5"/></svg>
+          </label>
+          <button class="primary-button" data-view="nueva-receta" type="button"><span aria-hidden="true">＋</span>Nueva receta</button>
+        </div>
+        <section class="stage7-paper-card base-library-card" aria-labelledby="baseLibraryTitle">
+          <div class="section-heading stage7-section-heading">
+            <div><h2 id="baseLibraryTitle">Por Base</h2><p>Explora recetas organizadas por su espíritu base. Encuentra inspiración en cada destilado.</p></div>
+            <div class="section-kicker"><span></span>Explora por destilado</div>
+          </div>
+          <div id="baseLibraryGrid" class="base-library-grid" aria-live="polite"></div>
+          <div id="baseLibraryEmpty" class="empty-state stage7-empty" hidden>
+            <strong>No hay bases o recetas que coincidan.</strong>
+            <span>Prueba otra búsqueda o cambia el filtro.</span>
+          </div>
+        </section>
+      </section>
+
+      <section class="view stage7-library-view" id="view-favoritas" data-view-panel="favoritas">
+        <div class="hero-row stage7-hero favorites-hero">
+          <div>
+            <p class="eyebrow">Bienvenido a tu barra</p>
+            <h1>Tus Favoritas</h1>
+            <p class="hero-subtitle">Las recetas que siempre quieres tener a mano.</p>
+          </div>
+          <blockquote>“Un buen trago también<br>es una forma de conocimiento.”</blockquote>
+        </div>
+        <div class="stage7-toolbar favorites-toolbar" aria-label="Herramientas de favoritas">
+          <label class="search-box" for="favoritesSearch">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.4"/><path d="m15.6 15.6 5 5"/></svg>
+            <input id="favoritesSearch" type="search" autocomplete="off" placeholder="Buscar en tus favoritas..." aria-label="Buscar en favoritas">
+          </label>
+          <label class="filter-box" for="favoritesBaseFilter">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6.2 7v5.8l-3.6 1.8V12z"/></svg>
+            <select id="favoritesBaseFilter" aria-label="Filtrar favoritas por base"><option value="all">Todas las bases</option></select>
+            <svg class="select-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9.5 5 5 5-5"/></svg>
+          </label>
+          <button class="primary-button" data-view="nueva-receta" type="button"><span aria-hidden="true">＋</span>Nueva receta</button>
+        </div>
+        <section class="stage7-paper-card favorites-card" aria-labelledby="favoritesTitle">
+          <div id="favoritesSummary" class="favorites-summary"></div>
+          <h2 id="favoritesTitle" class="sr-only">Recetas favoritas</h2>
+          <div id="favoritesList" class="favorites-list" aria-live="polite"></div>
+          <div id="favoritesEmpty" class="empty-state stage7-empty" hidden>
+            <strong>Aún no tienes favoritas para mostrar.</strong>
+            <span>Marca una receta con el corazón y aparecerá aquí.</span>
+          </div>
+          <div class="favorites-footer-line"><span></span>Grandes tragos, siempre contigo<span></span></div>
+        </section>
+      </section>
+
+      <section class="view catalog-view" id="view-catalogo" data-view-panel="catalogo">
+        <div class="hero-row catalog-hero">
+          <div>
+            <p class="eyebrow">Catálogo</p>
+            <h1>Catálogo del Bar</h1>
+            <p class="hero-subtitle">Administra las listas maestras que darán vida a cada receta.</p>
+          </div>
+          <blockquote>“El orden también es parte<br>del arte de mezclar.”</blockquote>
+        </div>
+
+        <div class="catalog-toolbar" aria-label="Herramientas de catálogo">
+          <label class="search-box" for="catalogSearch">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.4"/><path d="m15.6 15.6 5 5"/></svg>
+            <input id="catalogSearch" type="search" autocomplete="off" placeholder="Buscar en el catálogo actual..." aria-label="Buscar en el catálogo actual">
+          </label>
+          <button class="primary-button catalog-add-button" id="catalogAddBtn" type="button">
+            <span aria-hidden="true">＋</span>Agregar elemento
+          </button>
+        </div>
+
+        <section class="catalog-card" aria-labelledby="catalogTitle">
+          <div class="catalog-card-heading">
+            <div>
+              <p class="catalog-kicker">Listas maestras</p>
+              <h2 id="catalogTitle">Bases</h2>
+            </div>
+            <div class="catalog-total" id="catalogTotal">0 elementos</div>
+          </div>
+
+          <div class="catalog-layout">
+            <nav class="catalog-tabs" id="catalogTabs" aria-label="Tipos de catálogo"></nav>
+            <div class="catalog-panel">
+              <div class="catalog-panel-head">
+                <div>
+                  <h3 id="catalogPanelTitle">Bases</h3>
+                  <p id="catalogPanelHelp">Destilados o familias principales para clasificar recetas.</p>
+                </div>
+                <button class="catalog-inline-add" id="catalogInlineAdd" type="button">＋ Nuevo</button>
+              </div>
+              <div class="catalog-list" id="catalogList" aria-live="polite"></div>
+              <div class="catalog-empty" id="catalogEmpty" hidden>
+                <strong>No hay elementos para mostrar.</strong>
+                <span>Agrega uno nuevo o limpia la búsqueda.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="view settings-view" id="view-configuracion" data-view-panel="configuracion">
+        <div class="hero-row settings-hero">
+          <div>
+            <p class="eyebrow">Configuración</p>
+            <h1>A tu medida, siempre.</h1>
+            <p class="hero-subtitle">Personaliza tu experiencia en la barra.</p>
+          </div>
+          <blockquote>“El buen funcionamiento<br>también es una forma de elegancia.”</blockquote>
+        </div>
+
+        <section class="settings-card settings-pwa" aria-labelledby="settingsPwaTitle">
+          <div class="settings-card-title">
+            <span class="settings-title-icon" aria-hidden="true">▣</span>
+            <div><h2 id="settingsPwaTitle">PWA (Aplicación Instalable)</h2><p>Mantén tu app siempre actualizada para la mejor experiencia.</p></div>
+          </div>
+          <div class="pwa-grid">
+            <div class="pwa-status-list" aria-live="polite">
+              <div class="status-row"><span class="status-icon is-ok" aria-hidden="true">✓</span><span>Estado de instalación</span><strong id="pwaInstallStatus">Comprobando…</strong></div>
+              <div class="status-row"><span class="status-icon" aria-hidden="true">◈</span><span>Service Worker</span><strong id="pwaSwStatus">Comprobando…</strong></div>
+              <div class="status-row"><span class="status-icon" aria-hidden="true">#</span><span>Versión actual</span><strong id="pwaCurrentVersion">v1.9.0</strong></div>
+              <div class="status-row"><span class="status-icon" aria-hidden="true">⌕</span><span>Última búsqueda</span><strong id="pwaLastSearch">Nunca</strong></div>
+              <div class="status-row"><span class="status-icon" aria-hidden="true">◷</span><span>Última actualización</span><strong id="pwaLastUpdate">Nunca</strong></div>
+            </div>
+            <div class="pwa-actions-panel">
+              <div class="update-state" id="pwaUpdateState">
+                <span class="update-symbol" aria-hidden="true">↻</span>
+                <div><strong id="pwaUpdateTitle">Tu versión está al día</strong><span id="pwaUpdateCopy">Puedes buscar una versión nueva cuando quieras.</span></div>
+              </div>
+              <button class="primary-button settings-primary" id="pwaApplyUpdate" type="button" hidden>⇩ <span>Aplicar actualización</span></button>
+              <button class="secondary-action settings-secondary" id="pwaCheckUpdate" type="button">⌕ <span>Buscar actualizaciones</span></button>
+              <button class="secondary-action settings-secondary" id="pwaInstallApp" type="button" hidden>＋ <span>Instalar aplicación</span></button>
+              <p class="settings-inline-status" id="pwaActionStatus" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+        </section>
+
+        <section class="settings-card" aria-labelledby="backupJsonTitle">
+          <div class="settings-card-title">
+            <span class="settings-title-icon" aria-hidden="true">▤</span>
+            <div><h2 id="backupJsonTitle">Respaldo JSON</h2><p>Guarda una copia de tus recetas, favoritas y configuración.</p></div>
+          </div>
+          <div class="settings-action-row">
+            <div class="settings-note"><span aria-hidden="true">ⓘ</span><p>El respaldo incluye recetas, catálogos, favoritas, configuración y las fotografías optimizadas. Las imágenes se incorporan una sola vez para evitar duplicados innecesarios.</p></div>
+            <button class="primary-button settings-wide-button" id="exportBackupBtn" type="button">⇧ <span>Crear respaldo JSON</span></button>
+          </div>
+          <p class="settings-inline-status" id="backupExportStatus" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="settings-card" aria-labelledby="restoreJsonTitle">
+          <div class="settings-card-title">
+            <span class="settings-title-icon" aria-hidden="true">⇩</span>
+            <div><h2 id="restoreJsonTitle">Restaurar JSON</h2><p>Restaura tus datos desde un archivo de respaldo.</p></div>
+          </div>
+          <div class="settings-action-row">
+            <div class="settings-note"><span aria-hidden="true">ⓘ</span><p>Selecciona un respaldo JSON creado por la app. Se validará estructura y versión antes de permitir el reemplazo.</p></div>
+            <div class="restore-file-wrap">
+              <input id="restoreBackupInput" type="file" accept="application/json,.json" hidden>
+              <button class="secondary-action settings-wide-button is-burgundy" id="selectBackupBtn" type="button">▱ <span>Seleccionar archivo</span></button>
+              <small>Solo archivos JSON compatibles generados por la app.</small>
+            </div>
+          </div>
+          <p class="settings-inline-status" id="backupRestoreStatus" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="settings-card" aria-labelledby="dataStorageTitle">
+          <div class="settings-card-title">
+            <span class="settings-title-icon" aria-hidden="true">▧</span>
+            <div><h2 id="dataStorageTitle">Datos y almacenamiento</h2><p>Gestiona los datos locales de la aplicación.</p></div>
+          </div>
+          <div class="settings-action-row">
+            <div class="settings-note"><span aria-hidden="true">ⓘ</span><p>Puedes eliminar recetas, favoritas, fotografías y configuración local. Esta acción no se puede deshacer y no afecta la instalación de la PWA.</p></div>
+            <button class="secondary-action settings-wide-button is-danger-outline" id="clearLocalDataBtn" type="button">▧ <span>Eliminar todos los datos</span></button>
+          </div>
+          <p class="settings-inline-status" id="clearDataStatus" role="status" aria-live="polite"></p>
+        </section>
+      </section>
+
+      <section class="view recipe-create-view" id="view-nueva-receta" data-view-panel="nueva-receta">
+        <div class="hero-row recipe-create-hero">
+          <div>
+            <p class="eyebrow">Bienvenido a tu barra</p>
+            <h1>Descubre. Mezcla. Disfruta.</h1>
+          </div>
+          <blockquote>“Un buen trago también<br>es una forma de conocimiento.”</blockquote>
+        </div>
+
+        <div class="action-row recipe-create-actions" aria-label="Herramientas de exploración">
+          <label class="search-box" for="newRecipeGlobalSearch">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.4"/><path d="m15.6 15.6 5 5"/></svg>
+            <input id="newRecipeGlobalSearch" type="search" autocomplete="off" placeholder="Buscar recetas, ingredientes, técnicas..." aria-label="Buscar recetas, ingredientes o técnicas">
+          </label>
+          <label class="filter-box" for="newRecipeGlobalBaseFilter">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6.2 7v5.8l-3.6 1.8V12z"/></svg>
+            <select id="newRecipeGlobalBaseFilter" aria-label="Filtrar por base"><option value="all">Todas las bases</option></select>
+            <svg class="select-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9.5 5 5 5-5"/></svg>
+          </label>
+          <button class="primary-button" data-view="nueva-receta" type="button"><span aria-hidden="true">＋</span>Nueva receta</button>
+        </div>
+
+        <section class="recipe-editor-card" aria-labelledby="newRecipeTitle">
+          <div class="recipe-editor-heading">
+            <div>
+              <button class="recipe-back" id="recipeEditorBack" data-view="recetas" type="button" aria-label="Volver a Recetas">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 6-6 6 6 6"/></svg> Volver
+              </button>
+              <h2 id="newRecipeTitle">Nueva Receta</h2>
+              <p>Comparte tu creación con la comunidad del Ágora.</p>
+            </div>
+            <div class="recipe-story-kicker"><span></span>Cada receta cuenta una historia</div>
+          </div>
+
+          <form id="newRecipeForm" class="new-recipe-form" novalidate>
+            <div class="recipe-form-grid recipe-top-grid">
+              <section class="recipe-block photo-block" aria-labelledby="photoBlockTitle">
+                <div class="recipe-block-title">
+                  <span class="block-icon" aria-hidden="true">▣</span>
+                  <div><h3 id="photoBlockTitle">Foto de la bebida</h3><p>Añade una imagen que haga justicia a tu creación.</p></div>
+                </div>
+                <div class="photo-workspace">
+                  <label class="photo-dropzone" for="recipePhotoInput">
+                    <input id="recipePhotoInput" type="file" accept="image/png,image/jpeg" hidden>
+                    <span class="photo-camera" aria-hidden="true">▣</span>
+                    <strong>Haz clic para subir una imagen</strong>
+                    <small>o arrastra y suelta aquí</small>
+                    <em>JPG, PNG · Máx. 5 MB</em>
+                  </label>
+                  <div class="photo-preview" id="recipePhotoPreview" aria-label="Vista previa de la fotografía">
+                    <div class="photo-preview-empty" id="recipePhotoEmpty"><span aria-hidden="true">◇</span><strong>Vista previa</strong><small>La fotografía se optimizará y guardará localmente.</small></div>
+                    <img id="recipePhotoImage" alt="Vista previa de la bebida" hidden>
+                    <button class="photo-action photo-edit" id="recipePhotoEdit" type="button" aria-label="Cambiar fotografía">✎</button>
+                    <button class="photo-action photo-delete" id="recipePhotoDelete" type="button" aria-label="Quitar fotografía">×</button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="recipe-block identity-block" aria-label="Datos principales de la receta">
+                <label class="recipe-field recipe-field-full" for="recipeName">
+                  <span>Nombre de la bebida <b>*</b></span>
+                  <input id="recipeName" name="nombre" type="text" maxlength="100" autocomplete="off" placeholder="Ej. Margarita del Sir" required>
+                </label>
+                <div class="recipe-field-row">
+                  <label class="recipe-field" for="recipeBasePrimary">
+                    <span>Base principal <b>*</b></span>
+                    <select id="recipeBasePrimary" name="basePrincipal" required></select>
+                  </label>
+                  <div class="recipe-field">
+                    <span>Bases secundarias</span>
+                    <details class="multi-select" id="secondaryBasesPicker">
+                      <summary><span id="secondaryBasesSummary">Selecciona bases (opcional)</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9.5 5 5 5-5"/></svg></summary>
+                      <div class="multi-select-menu" id="secondaryBasesOptions"></div>
+                    </details>
+                  </div>
+                </div>
+                <div class="recipe-field-row">
+                  <label class="recipe-field" for="recipeCategory">
+                    <span>Categoría <b>*</b></span>
+                    <select id="recipeCategory" name="categoria" required></select>
+                  </label>
+                  <label class="recipe-field" for="recipeGlassware">
+                    <span>Cristalería <b>*</b></span>
+                    <select id="recipeGlassware" name="cristaleria" required></select>
+                  </label>
+                </div>
+                <div class="recipe-field-row">
+                  <div class="recipe-field">
+                    <span>Técnicas</span>
+                    <details class="multi-select" id="techniquesPicker">
+                      <summary><span id="techniquesSummary">Selecciona técnicas</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9.5 5 5 5-5"/></svg></summary>
+                      <div class="multi-select-menu" id="techniquesOptions"></div>
+                    </details>
+                  </div>
+                  <div class="recipe-field">
+                    <span>Etiquetas</span>
+                    <details class="multi-select" id="tagsPicker">
+                      <summary><span id="tagsSummary">Selecciona etiquetas</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9.5 5 5 5-5"/></svg></summary>
+                      <div class="multi-select-menu" id="tagsOptions"></div>
+                    </details>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="recipe-form-grid recipe-middle-grid">
+              <section class="recipe-block ingredients-block" aria-labelledby="ingredientsTitle">
+                <div class="recipe-block-title">
+                  <span class="block-icon" aria-hidden="true">❧</span>
+                  <div><h3 id="ingredientsTitle">Ingredientes</h3><p>Añade los ingredientes y sus cantidades.</p></div>
+                </div>
+                <div class="ingredient-table-head" aria-hidden="true"><span>Ingrediente</span><span>Cantidad</span><span>Unidad</span><span></span></div>
+                <div class="ingredient-rows" id="ingredientsRows"></div>
+                <button class="outline-add-button" id="addIngredientBtn" type="button"><span aria-hidden="true">＋</span>Añadir ingrediente</button>
+              </section>
+
+              <section class="recipe-block alchemy-block" aria-labelledby="alchemyTitle">
+                <div class="recipe-block-title">
+                  <span class="block-icon" aria-hidden="true">⚗</span>
+                  <div><h3 id="alchemyTitle">ALQUIMIA</h3><p>Describe el paso a paso de la preparación.</p></div>
+                </div>
+                <div class="alchemy-steps" id="alchemySteps"></div>
+                <button class="outline-add-button" id="addAlchemyBtn" type="button"><span aria-hidden="true">＋</span>Añadir paso</button>
+              </section>
+            </div>
+
+            <div class="recipe-form-grid recipe-bottom-grid">
+              <section class="recipe-block compact-recipe-block">
+                <div class="recipe-block-title"><span class="block-icon" aria-hidden="true">❧</span><div><h3>Decoración / Garnish</h3></div></div>
+                <label class="recipe-field field-no-label" for="recipeGarnish"><span class="sr-only">Decoración / Garnish</span><select id="recipeGarnish" name="decoracion"></select></label>
+              </section>
+              <section class="recipe-block compact-recipe-block">
+                <div class="recipe-block-title"><span class="block-icon" aria-hidden="true">▤</span><div><h3>Notas</h3></div></div>
+                <label class="recipe-field field-no-label" for="recipeNotes"><span class="sr-only">Notas</span><textarea id="recipeNotes" name="notas" maxlength="1200" placeholder="Ej. Historia, variaciones, consejos..."></textarea></label>
+              </section>
+              <section class="recipe-block compact-recipe-block state-block">
+                <div class="recipe-block-title"><span class="block-icon" aria-hidden="true">▥</span><div><h3>Estado</h3></div></div>
+                <label class="state-select-wrap" for="recipeStatus"><i id="recipeStatusDot"></i><select id="recipeStatus" name="estado"><option>En prueba</option><option>Aprobada</option><option>Descartada</option></select></label>
+              </section>
+            </div>
+
+            <div class="recipe-form-error" id="recipeFormError" role="alert" hidden></div>
+            <div class="recipe-form-footer">
+              <span class="recipe-storage-note" id="recipeStorageNote">Recetas y fotografías se guardan localmente.</span>
+              <div class="recipe-footer-actions">
+                <button class="secondary-action recipe-cancel" data-view="inicio" type="button">Cancelar</button>
+                <button class="primary-button recipe-save" id="recipeSaveButton" type="submit"><span aria-hidden="true">▣</span><span class="recipe-save-label">Guardar receta</span></button>
+              </div>
+            </div>
+          </form>
+        </section>
+      </section>
+
+      <section class="view recipe-detail-view" id="view-ficha-receta" data-view-panel="ficha-receta" aria-live="polite">
+        <div class="recipe-detail-shell" id="recipeDetailShell">
+          <div class="recipe-detail-loading">
+            <span class="detail-loading-mark" aria-hidden="true">⚗</span>
+            <strong>Cargando ficha de receta…</strong>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="backdrop" id="backdrop" hidden></div>
+
+  <div class="modal-layer" id="catalogModal" hidden>
+    <div class="modal-backdrop" data-close-catalog-modal></div>
+    <section class="catalog-modal-card" role="dialog" aria-modal="true" aria-labelledby="catalogModalTitle">
+      <button class="modal-close" id="catalogModalClose" type="button" aria-label="Cerrar">×</button>
+      <p class="catalog-kicker">Catálogo</p>
+      <h2 id="catalogModalTitle">Agregar elemento</h2>
+      <p class="modal-context" id="catalogModalContext">Bases</p>
+      <form id="catalogForm" novalidate>
+        <label class="modal-field" for="catalogNameInput">
+          <span>Nombre</span>
+          <input id="catalogNameInput" name="name" type="text" maxlength="80" autocomplete="off" required placeholder="Escribe el nombre">
+        </label>
+        <div class="modal-error" id="catalogFormError" role="alert" hidden></div>
+        <div class="modal-actions">
+          <button class="secondary-action modal-secondary" id="catalogCancelBtn" type="button">Cancelar</button>
+          <button class="primary-button modal-primary" type="submit">Guardar</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal-layer" id="deleteModal" hidden>
+    <div class="modal-backdrop" data-close-delete-modal></div>
+    <section class="catalog-modal-card delete-modal-card" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+      <button class="modal-close" id="deleteModalClose" type="button" aria-label="Cerrar">×</button>
+      <p class="catalog-kicker">Confirmación</p>
+      <h2 id="deleteModalTitle">Borrar elemento</h2>
+      <p class="delete-copy" id="deleteModalCopy">Esta acción eliminará el elemento del catálogo.</p>
+      <div class="modal-actions">
+        <button class="secondary-action modal-secondary" id="deleteCancelBtn" type="button">Cancelar</button>
+        <button class="danger-button" id="deleteConfirmBtn" type="button">Borrar</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-layer" id="recipeDeleteModal" hidden>
+    <div class="modal-backdrop" data-close-recipe-delete></div>
+    <section class="catalog-modal-card delete-modal-card" role="dialog" aria-modal="true" aria-labelledby="recipeDeleteModalTitle">
+      <button class="modal-close" id="recipeDeleteModalClose" type="button" aria-label="Cerrar">×</button>
+      <p class="catalog-kicker">Confirmación</p>
+      <h2 id="recipeDeleteModalTitle">Eliminar receta</h2>
+      <p class="delete-copy" id="recipeDeleteModalCopy">Esta acción eliminará la receta y su fotografía guardada.</p>
+      <div class="modal-actions">
+        <button class="secondary-action modal-secondary" id="recipeDeleteCancelBtn" type="button">Cancelar</button>
+        <button class="danger-button" id="recipeDeleteConfirmBtn" type="button">Eliminar</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-layer" id="restoreConfirmModal" hidden>
+    <div class="modal-backdrop" data-close-restore-confirm></div>
+    <section class="catalog-modal-card restore-modal-card" role="dialog" aria-modal="true" aria-labelledby="restoreConfirmTitle">
+      <button class="modal-close" id="restoreConfirmClose" type="button" aria-label="Cerrar">×</button>
+      <p class="catalog-kicker">Restauración validada</p>
+      <h2 id="restoreConfirmTitle">Reemplazar datos actuales</h2>
+      <p class="delete-copy" id="restoreConfirmCopy">El archivo es compatible. Confirma para reemplazar los datos locales actuales.</p>
+      <div class="restore-summary" id="restoreSummary"></div>
+      <div class="modal-actions">
+        <button class="secondary-action modal-secondary" id="restoreCancelBtn" type="button">Cancelar</button>
+        <button class="primary-button modal-primary" id="restoreConfirmBtn" type="button">Restaurar respaldo</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-layer" id="clearDataModal" hidden>
+    <div class="modal-backdrop" data-close-clear-data></div>
+    <section class="catalog-modal-card delete-modal-card" role="dialog" aria-modal="true" aria-labelledby="clearDataModalTitle">
+      <button class="modal-close" id="clearDataModalClose" type="button" aria-label="Cerrar">×</button>
+      <p class="catalog-kicker">Confirmación</p>
+      <h2 id="clearDataModalTitle">Eliminar todos los datos</h2>
+      <p class="delete-copy">Se borrarán recetas, catálogos personalizados, favoritas, fotografías y configuración local. La aplicación seguirá instalada.</p>
+      <label class="modal-field" for="clearDataConfirmInput"><span>Escribe <b>BORRAR</b> para confirmar</span><input id="clearDataConfirmInput" type="text" autocomplete="off" placeholder="BORRAR"></label>
+      <div class="modal-actions">
+        <button class="secondary-action modal-secondary" id="clearDataCancelBtn" type="button">Cancelar</button>
+        <button class="danger-button" id="clearDataConfirmBtn" type="button" disabled>Eliminar datos</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="catalogToast" role="status" aria-live="polite" hidden></div>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

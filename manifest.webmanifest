@@ -1,0 +1,17 @@
+{
+  "name": "Barra de El Ágora del Sir",
+  "short_name": "El Ágora",
+  "description": "Biblioteca privada de recetas, alquimia y aprendizaje de barra.",
+  "id": "./",
+  "start_url": "./#inicio",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#071c31",
+  "theme_color": "#0a2038",
+  "lang": "es-NI",
+  "icons": [
+    {"src":"./assets/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"./assets/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+    {"src":"./assets/icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+  ]
+}
