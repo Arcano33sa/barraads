@@ -24,3 +24,4 @@ Versión final 1.9.0 cerrada sobre la base funcional de la Etapa 8, sin agregar 
 ## Versión
 - App/PWA: 1.9.0
 - Esquema de respaldo JSON: 1
+# barraads
