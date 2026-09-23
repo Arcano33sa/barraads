@@ -723,8 +723,12 @@ function formatIngredientAmount(row){
   const hasAmount = raw !== null && raw !== undefined && String(raw).trim() !== '';
   if (!hasAmount) return '';
   const amount = Number(raw);
-  if (Number.isFinite(amount) && amount === 0) return 'Al gusto';
-  return [formatRecipeAmount(raw),row?.unidad || ''].filter(Boolean).join(' ');
+  const unit = String(row?.unidad ?? '').trim();
+  // “Al gusto” representa exclusivamente el contrato 0 + unidad vacía.
+  // Una receta histórica 0 + unidad conserva su lectura original hasta que
+  // esa receta sea editada explícitamente; no hay migración global.
+  if (Number.isFinite(amount) && amount === 0 && !unit) return 'Al gusto';
+  return [formatRecipeAmount(raw),unit].filter(Boolean).join(' ');
 }
 
 function statusClass(value){
@@ -1486,11 +1490,28 @@ function syncIngredientUnitForAmount(row){
   const amountInput = row.querySelector('[data-ingredient-amount]');
   const unitSelect = row.querySelector('[data-ingredient-unit]');
   if (!amountInput || !unitSelect) return;
+
   const raw = String(amountInput.value ?? '').trim();
-  const isAlGusto = raw !== '' && Number(raw) === 0;
-  if (isAlGusto) unitSelect.value = '';
-  unitSelect.disabled = isAlGusto;
-  unitSelect.setAttribute('aria-label',isAlGusto ? 'Unidad no necesaria: Al gusto' : 'Unidad');
+  const numericAmount = raw === '' ? NaN : Number(raw);
+  const isAlGusto = raw !== '' && Number.isFinite(numericAmount) && numericAmount === 0;
+  const wasAlGusto = unitSelect.dataset.alGusto === 'true';
+
+  if (isAlGusto) {
+    unitSelect.value = '';
+    unitSelect.innerHTML = '<option value="" selected>Al Gusto</option>';
+    unitSelect.disabled = true;
+    unitSelect.dataset.alGusto = 'true';
+    unitSelect.setAttribute('aria-label','Unidad: Al Gusto');
+    return;
+  }
+
+  if (wasAlGusto) {
+    unitSelect.innerHTML = makeOptions(catalogs.unidades,'','Unidad');
+    unitSelect.value = '';
+  }
+  unitSelect.disabled = false;
+  delete unitSelect.dataset.alGusto;
+  unitSelect.setAttribute('aria-label','Unidad');
 }
 
 function addIngredientRow(data = {}){

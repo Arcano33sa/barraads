@@ -25,3 +25,21 @@
 - `0` real + unidad vacía se conserva como **Al gusto** en creación, edición, duplicado, persistencia y exportación.
 - Ficha y exportaciones distinguen explícitamente entre cantidad ausente y cero real.
 - Caché PWA actualizado a v1.14.9.
+
+## Ajuste v1.14.11 — Al Gusto: edición y compatibilidad histórica
+
+- Edición y reapertura conservan `cantidad: 0` + `unidad: ""` como **Al Gusto** visual.
+- Duplicado conserva el contrato de datos de ingredientes Al Gusto sin convertir el cero en vacío.
+- Cantidades históricas vacías siguen siendo ausencia de dato y no se convierten a cero.
+- Registros históricos con `cantidad: 0` y una unidad real ya no se migran globalmente al cargar o guardar otras recetas.
+- Ficha muestra **Al gusto** únicamente para `0 + unidad vacía`; un histórico `0 + unidad` conserva su lectura original.
+- Caché/versionado PWA actualizado a v1.14.11 sin borrar datos locales ni fotografías.
+
+
+## Ajuste v1.14.12 — Al Gusto: JSON, exportaciones y hardening final
+
+- El contrato persistido se mantiene como `cantidad: 0` + `unidad: ""`; una cantidad vacía continúa como `null` y no se convierte a cero.
+- Exportaciones PNG/JPG/PDF y exportaciones múltiples muestran “Al gusto” únicamente cuando la cantidad es cero y la unidad está vacía.
+- Un registro histórico con cantidad cero y unidad explícita conserva su unidad en la exportación; no se migra visualmente a “Al gusto”.
+- Respaldo/restauración JSON conserva cero numérico y unidad vacía mediante la sanitización existente, sin crear unidades fantasma ni duplicar recetas.
+- Caché/versionado PWA actualizado a v1.14.12, manteniendo datos locales, favoritos, configuración y fotografías fuera del ciclo destructivo de actualización.

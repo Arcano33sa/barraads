@@ -153,11 +153,14 @@ function ingredientAmount(row){
   const hasAmount = raw !== null && raw !== undefined && String(raw).trim() !== '';
   if (!hasAmount) return '';
   const amount = Number(raw);
-  if (Number.isFinite(amount) && amount === 0) return 'Al gusto';
+  const unit = cleanText(row?.unidad);
+  // Contrato “Al gusto”: únicamente cantidad 0 real + unidad vacía.
+  // Un 0 histórico con unidad explícita conserva esa unidad en la exportación.
+  if (Number.isFinite(amount) && amount === 0 && !unit) return 'Al gusto';
   const amountText = Number.isFinite(amount)
     ? new Intl.NumberFormat('es-NI',{maximumFractionDigits:2}).format(amount)
     : '';
-  return [amountText,cleanText(row?.unidad)].filter(Boolean).join(' ');
+  return [amountText,unit].filter(Boolean).join(' ');
 }
 
 function statusColor(status){

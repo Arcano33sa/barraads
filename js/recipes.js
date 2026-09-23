@@ -56,7 +56,10 @@ export function sanitizeRecipeDraft(draft){
         return {
           ingrediente: cleanString(row?.ingrediente),
           cantidad,
-          unidad: cantidad === 0 ? '' : cleanString(row?.unidad)
+          // Conservar la unidad histórica tal como venga. La conversión visual de
+          // 0 + unidad vacía a “Al Gusto” pertenece al formulario/ficha, no a una
+          // migración global durante carga/guardado.
+          unidad: cleanString(row?.unidad)
         };
       }).filter(row => row.ingrediente || row.cantidad !== null || row.unidad)
     : [];

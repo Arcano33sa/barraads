@@ -1,5 +1,5 @@
 {
-  "version": "1.14.9",
+  "version": "1.14.12",
   "schemaVersion": 1,
-  "notes": "Corrección Al gusto: cantidad 0 real, unidad vacía y distinción estricta entre cantidad vacía y cero en formulario, ficha y exportaciones."
+  "notes": "Hardening final Al Gusto: JSON conserva 0 + unidad vacía, exportaciones muestran Al gusto solo para ese contrato y PWA/cache actualizado sin migraciones destructivas."
 }
