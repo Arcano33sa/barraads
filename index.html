@@ -425,7 +425,7 @@
             <div class="pwa-status-list" aria-live="polite">
               <div class="status-row"><span class="status-icon is-ok" aria-hidden="true">✓</span><span>Estado de instalación</span><strong id="pwaInstallStatus">Comprobando…</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">◈</span><span>Service Worker</span><strong id="pwaSwStatus">Comprobando…</strong></div>
-              <div class="status-row"><span class="status-icon" aria-hidden="true">#</span><span>Versión actual</span><strong id="pwaCurrentVersion">v1.20.0</strong></div>
+              <div class="status-row"><span class="status-icon" aria-hidden="true">#</span><span>Versión actual</span><strong id="pwaCurrentVersion">v1.21.0</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">⌕</span><span>Última búsqueda</span><strong id="pwaLastSearch">Nunca</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">◷</span><span>Última actualización</span><strong id="pwaLastUpdate">Nunca</strong></div>
             </div>
@@ -550,6 +550,10 @@
                 <label class="recipe-field recipe-field-full" for="recipeName">
                   <span>Nombre de la bebida <b>*</b></span>
                   <input id="recipeName" name="nombre" type="text" maxlength="100" autocomplete="off" placeholder="Ej. Margarita del Sir" required>
+                </label>
+                <label class="recipe-field recipe-field-full" for="recipeAlchemist">
+                  <span>Alquimista</span>
+                  <input id="recipeAlchemist" name="alquimista" type="text" autocomplete="off" placeholder="¿Quién creó esta receta? (opcional)">
                 </label>
                 <div class="recipe-field-row">
                   <label class="recipe-field" for="recipeBasePrimary">

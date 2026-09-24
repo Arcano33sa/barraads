@@ -74,6 +74,7 @@ export function sanitizeRecipeDraft(draft){
   const recipe = {
     id: cleanString(source.id),
     nombre: cleanString(source.nombre),
+    alquimista: cleanString(source.alquimista),
     basePrincipal: cleanString(source.basePrincipal),
     basesSecundarias: cleanArray(source.basesSecundarias),
     categoria: cleanString(source.categoria),

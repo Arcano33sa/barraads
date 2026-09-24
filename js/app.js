@@ -53,6 +53,7 @@ const catalogToast = document.getElementById('catalogToast');
 
 const newRecipeForm = document.getElementById('newRecipeForm');
 const recipeName = document.getElementById('recipeName');
+const recipeAlchemist = document.getElementById('recipeAlchemist');
 const recipeBasePrimary = document.getElementById('recipeBasePrimary');
 const recipeCategory = document.getElementById('recipeCategory');
 const recipeGlassware = document.getElementById('recipeGlassware');
@@ -824,6 +825,7 @@ async function renderRecipeDetail(recipeId){
           </div>
           <div class="detail-status ${statusClass(recipe.estado)}"><i></i>${escapeHtml(recipe.estado || 'En prueba')}</div>
           <dl class="detail-meta-grid">
+            ${recipe.alquimista ? `<div class="detail-alchemist"><dt>Alquimista</dt><dd>${escapeHtml(recipe.alquimista)}</dd></div>` : ''}
             <div><dt>Base principal</dt><dd>${escapeHtml(recipe.basePrincipal || 'No especificada')}</dd></div>
             <div><dt>Bases secundarias</dt><dd>${secondaryBases.length ? escapeHtml(secondaryBases.join(', ')) : 'Ninguna'}</dd></div>
             <div><dt>Categoría</dt><dd>${escapeHtml(recipe.categoria || 'No especificada')}</dd></div>
@@ -1636,6 +1638,7 @@ function clearRecipeValidation(){
 function collectRecipeDraft(){
   return {
     nombre: recipeName?.value || '',
+    alquimista: recipeAlchemist?.value || '',
     basePrincipal: recipeBasePrimary?.value || '',
     basesSecundarias: selectedMultiValues(secondaryBasesOptions),
     categoria: recipeCategory?.value || '',
@@ -1868,6 +1871,7 @@ async function loadRecipeIntoEditor(recipe){
   clearRecipeValidation();
   syncRecipeCatalogControls();
   if (recipeName) recipeName.value = recipe.nombre || '';
+  if (recipeAlchemist) recipeAlchemist.value = recipe.alquimista || '';
   if (recipeBasePrimary) recipeBasePrimary.value = recipe.basePrincipal || '';
   if (recipeCategory) recipeCategory.value = recipe.categoria || '';
   if (recipeGlassware) recipeGlassware.value = recipe.cristaleria || '';

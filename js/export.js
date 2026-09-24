@@ -351,7 +351,11 @@ function measureExport(recipe,ctx){
   const notesH = 108 + notes.height;
 
   const heroH = 500;
-  const headerH = 170;
+  ctx.font = serif(54);
+  const titleLines = Math.min(2,wrapLines(ctx,cleanText(recipe?.nombre,'Receta'),CONTENT_WIDTH - 250).length);
+  ctx.font = serif(24);
+  const authorH = cleanText(recipe?.alquimista) ? 12 + wrapLines(ctx,`Alquimista: ${cleanText(recipe.alquimista)}`,CONTENT_WIDTH).length * 31 : 0;
+  const headerH = 170 + Math.max(0,titleLines - 1) * 58 + authorH;
   const footerH = 95;
   const gaps = 7 * 24;
   const height = EXPORT_PADDING + headerH + heroH + ingredientH + alchemyH + techniquesH + garnishH + tagsH + notesH + gaps + footerH + EXPORT_PADDING;
@@ -392,13 +396,18 @@ function drawHeader(ctx,recipe,y){
   ctx.fillStyle = COLORS.ink;
   ctx.textBaseline = 'middle';
   ctx.fillText(status,EXPORT_WIDTH - EXPORT_PADDING - statusW + 42,y + 89,statusW - 52);
+  const titleExtra = Math.max(0,titleHeight - 58);
+  let authorH = 0;
+  if (cleanText(recipe?.alquimista)) {
+    authorH = 12 + drawWrapped(ctx,`Alquimista: ${cleanText(recipe.alquimista)}`,EXPORT_PADDING,y + 144 + titleExtra,CONTENT_WIDTH,31,{font:serif(24),color:COLORS.ink});
+  }
   ctx.strokeStyle = COLORS.burgundy;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(EXPORT_PADDING,y + 144 + Math.max(0,titleHeight - 58));
-  ctx.lineTo(EXPORT_WIDTH - EXPORT_PADDING,y + 144 + Math.max(0,titleHeight - 58));
+  ctx.moveTo(EXPORT_PADDING,y + 144 + titleExtra + authorH);
+  ctx.lineTo(EXPORT_WIDTH - EXPORT_PADDING,y + 144 + titleExtra + authorH);
   ctx.stroke();
-  return y + 170 + Math.max(0,titleHeight - 58);
+  return y + 170 + titleExtra + authorH;
 }
 
 function drawHero(ctx,recipe,images,brandImage,y,h,safeBreaks){
