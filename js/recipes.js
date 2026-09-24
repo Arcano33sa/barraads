@@ -1,3 +1,5 @@
+import { isAlGustoUnit } from './catalog.js';
+
 export const RECIPE_STORAGE_KEY = 'recipes.v1';
 
 const cleanString = value => String(value ?? '').trim().replace(/\s+/g,' ');
@@ -117,10 +119,10 @@ export function validateRecipe(recipe){
       !row.ingrediente
       || !Number.isFinite(row.cantidad)
       || row.cantidad < 0
-      || (row.cantidad > 0 && !row.unidad)
+      || (row.cantidad > 0 && (!row.unidad || isAlGustoUnit(row.unidad)))
       || (row.cantidad === 0 && Boolean(row.unidad))
     );
-    if (invalidIngredient) errors.push({field:'ingredientsRows',message:'Completa ingrediente y cantidad. Para cantidades mayores que 0 selecciona una unidad; con 0 se guarda como “Al gusto” sin unidad.'});
+    if (invalidIngredient) errors.push({field:'ingredientsRows',message:'Completa ingrediente y cantidad. Para cantidades mayores que 0 selecciona una medida normal. Para 0 usa “Al Gusto”; si aparece una unidad anterior, corrige la cantidad o pulsa “Usar Al Gusto”.'});
   }
 
   if (!recipe.alquimia.length) errors.push({field:'alchemySteps',message:'Añade al menos un paso de ALQUIMIA.'});

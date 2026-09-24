@@ -45,6 +45,10 @@ export function normalizeCatalogValue(value){
     .replace(/\s+/g,' ');
 }
 
+export function isAlGustoUnit(value){
+  return normalizeCatalogValue(value) === 'al gusto';
+}
+
 export function cloneSeedCatalogs(){
   return Object.fromEntries(
     Object.entries(CATALOG_DEFINITIONS).map(([key,definition]) => [key,[...definition.items]])
@@ -83,6 +87,7 @@ export function hasEquivalentDuplicate(catalogs,key,value,ignoreValue=null){
 export function addCatalogItem(catalogs,key,value){
   const clean = String(value).trim().replace(/\s+/g,' ');
   if (!clean) return {ok:false,reason:'empty'};
+  if (key === 'unidades' && isAlGustoUnit(clean)) return {ok:false,reason:'reserved'};
   if (hasEquivalentDuplicate(catalogs,key,clean)) return {ok:false,reason:'duplicate'};
   catalogs[key].push(clean);
   return {ok:true,value:clean};
@@ -91,6 +96,7 @@ export function addCatalogItem(catalogs,key,value){
 export function editCatalogItem(catalogs,key,originalValue,value){
   const clean = String(value).trim().replace(/\s+/g,' ');
   if (!clean) return {ok:false,reason:'empty'};
+  if (key === 'unidades' && isAlGustoUnit(clean)) return {ok:false,reason:'reserved'};
   if (hasEquivalentDuplicate(catalogs,key,clean,originalValue)) return {ok:false,reason:'duplicate'};
   const index = catalogs[key].indexOf(originalValue);
   if (index === -1) return {ok:false,reason:'missing'};

@@ -1,3 +1,11 @@
+## v1.21.1 — Al Gusto: protecciones (E1)
+
+- “Al Gusto” se reserva para cantidad cero: no puede agregarse ni renombrarse como unidad del catálogo, y una cantidad positiva con esa unidad es inválida.
+- El editor conserva las unidades históricas, incluso si ya no existen en el catálogo. Si la cantidad es 0 y hay una unidad, muestra un aviso y permite corregir la cantidad o elegir explícitamente “Usar Al Gusto” antes de guardar.
+- Se mantiene el formato `cantidad: 0, unidad: ""`, sin migrar recetas ni eliminar unidades de catálogos existentes.
+- Versión y caché PWA actualizadas a v1.21.1. La verificación completa en pantalla corresponde a E2.
+- Comprobación de las reglas de datos: `node --test tests/al-gusto.test.mjs`.
+
 ## v1.14.7 — Ficha optimizada para iPad vertical
 
 - En tablet/iPad vertical, la cabecera de la Ficha pasa a dos columnas: fotografía a la izquierda e identidad/metadatos a la derecha.

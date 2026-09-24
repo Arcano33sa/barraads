@@ -1,5 +1,5 @@
 {
-  "version": "1.21.0",
+  "version": "1.21.1",
   "schemaVersion": 1,
-  "notes": "Campo libre Alquimista en recetas, ficha y exportaciones; conservado en duplicados y respaldos JSON."
+  "notes": "Al Gusto reservado para cantidad cero; validación reforzada y corrección explícita de unidades históricas al editar."
 }

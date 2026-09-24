@@ -1,7 +1,7 @@
 import { storage } from './storage.js';
 import {
   CATALOG_DEFINITIONS, loadCatalogs, saveCatalogs, normalizeCatalogValue,
-  hasEquivalentDuplicate, addCatalogItem, editCatalogItem, deleteCatalogItem
+  hasEquivalentDuplicate, addCatalogItem, editCatalogItem, deleteCatalogItem, isAlGustoUnit
 } from './catalog.js';
 import {
   loadRecipes, saveRecipes, sanitizeRecipeDraft, validateRecipe, createRecipeRecord
@@ -1362,6 +1362,10 @@ function saveCatalogItem(value){
     showFormError('Escribe un nombre antes de guardar.');
     return false;
   }
+  if (activeCatalogKey === 'unidades' && isAlGustoUnit(clean)) {
+    showFormError('“Al Gusto” aparece automáticamente cuando la cantidad es 0. No se agrega como unidad al catálogo.');
+    return false;
+  }
   if (hasEquivalentDuplicate(catalogs,activeCatalogKey,clean,editingValue)) {
     showFormError('Ya existe un elemento igual o equivalente en este catálogo.');
     return false;
@@ -1490,7 +1494,15 @@ function makeOptions(items,selected,placeholder){
   return `<option value="">${escapeHtml(placeholder)}</option>` + values.map(item => `<option value="${escapeHtml(item)}"${item === selected ? ' selected' : ''}>${escapeHtml(item)}</option>`).join('');
 }
 
-function syncIngredientUnitForAmount(row){
+function ingredientUnitOptions(selected = ''){
+  // Conservar unidades históricas aunque ya no estén en el catálogo, para que
+  // abrir el editor no cambie el dato antes de que la persona lo corrija.
+  const units = catalogs.unidades.filter(unit => !isAlGustoUnit(unit));
+  if (selected && !units.includes(selected)) units.push(selected);
+  return makeOptions(units,selected,'Unidad');
+}
+
+function syncIngredientUnitForAmount(row,{preserveStoredUnit = false} = {}){
   if (!row) return;
   const amountInput = row.querySelector('[data-ingredient-amount]');
   const unitSelect = row.querySelector('[data-ingredient-unit]');
@@ -1500,6 +1512,16 @@ function syncIngredientUnitForAmount(row){
   const numericAmount = raw === '' ? NaN : Number(raw);
   const isAlGusto = raw !== '' && Number.isFinite(numericAmount) && numericAmount === 0;
   const wasAlGusto = unitSelect.dataset.alGusto === 'true';
+  const warning = row.querySelector('[data-ingredient-warning]');
+  const hasStoredConflict = isAlGusto && Boolean(unitSelect.value) && preserveStoredUnit;
+  if (warning) warning.hidden = !hasStoredConflict;
+  unitSelect.removeAttribute('aria-invalid');
+
+  if (hasStoredConflict) {
+    unitSelect.disabled = false;
+    unitSelect.setAttribute('aria-invalid','true');
+    return;
+  }
 
   if (isAlGusto) {
     unitSelect.value = '';
@@ -1511,7 +1533,7 @@ function syncIngredientUnitForAmount(row){
   }
 
   if (wasAlGusto) {
-    unitSelect.innerHTML = makeOptions(catalogs.unidades,'','Unidad');
+    unitSelect.innerHTML = ingredientUnitOptions();
     unitSelect.value = '';
   }
   unitSelect.disabled = false;
@@ -1526,10 +1548,11 @@ function addIngredientRow(data = {}){
   row.innerHTML = `
     <select data-ingredient-name aria-label="Ingrediente">${makeOptions(catalogs.ingredientes,data.ingrediente || '','Ingrediente')}</select>
     <input data-ingredient-amount type="number" inputmode="decimal" min="0" step="any" aria-label="Cantidad" value="${escapeHtml(data.cantidad ?? '')}">
-    <select data-ingredient-unit aria-label="Unidad">${makeOptions(catalogs.unidades,data.unidad || '','Unidad')}</select>
-    <button class="row-delete" type="button" data-remove-ingredient aria-label="Eliminar ingrediente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5"/></svg></button>`;
+    <select data-ingredient-unit aria-label="Unidad">${ingredientUnitOptions(data.unidad || '')}</select>
+    <button class="row-delete" type="button" data-remove-ingredient aria-label="Eliminar ingrediente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3m2 0-1 13H8L7 7m3 4v5m4-5v5"/></svg></button>
+    <div class="ingredient-warning" data-ingredient-warning hidden>Cantidad 0 con una unidad anterior. Corrige la cantidad o <button type="button" data-use-al-gusto>Usar Al Gusto</button>.</div>`;
   ingredientsRows.append(row);
-  syncIngredientUnitForAmount(row);
+  syncIngredientUnitForAmount(row,{preserveStoredUnit:true});
 }
 
 function rebuildIngredientRows(rows = null){
@@ -2253,11 +2276,21 @@ ingredientsRows?.addEventListener('input',event => {
   syncIngredientUnitForAmount(amount.closest('.ingredient-row'));
 });
 ingredientsRows?.addEventListener('change',event => {
+  const unit = event.target.closest('[data-ingredient-unit]');
+  if (unit) {
+    syncIngredientUnitForAmount(unit.closest('.ingredient-row'),{preserveStoredUnit:true});
+    return;
+  }
   const amount = event.target.closest('[data-ingredient-amount]');
   if (!amount) return;
   syncIngredientUnitForAmount(amount.closest('.ingredient-row'));
 });
 ingredientsRows?.addEventListener('click',event => {
+  const useAlGusto = event.target.closest('[data-use-al-gusto]');
+  if (useAlGusto) {
+    syncIngredientUnitForAmount(useAlGusto.closest('.ingredient-row'));
+    return;
+  }
   const remove = event.target.closest('[data-remove-ingredient]');
   if (!remove) return;
   remove.closest('.ingredient-row')?.remove();
