@@ -1,5 +1,5 @@
 {
-  "version": "1.15.0",
+  "version": "1.16.0",
   "schemaVersion": 1,
-  "notes": "Mixer Etapa 1/3: nuevo módulo debajo de Favoritas, selección A-Z de recetas reales, lectura aislada, rendimiento original temporal con sugerencia segura solo en ml y PWA/cache actualizado sin migraciones destructivas."
+  "notes": "Mixer Etapa 2/3: motor proporcional en memoria, validación positiva de rendimientos, resultados por ingrediente preservando unidades, Al gusto y cantidades históricas vacías, responsive y PWA/cache actualizado."
 }

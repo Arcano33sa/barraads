@@ -238,9 +238,9 @@
             <div>
               <p class="mixer-kicker">Cálculo proporcional</p>
               <h2 id="mixerTitle">Mixer</h2>
-              <p>En esta primera etapa se prepara la receta y su rendimiento. El escalado final se activará en la Etapa 2.</p>
+              <p>Define el rendimiento base y el volumen objetivo para calcular automáticamente cada ingrediente sin alterar la receta original.</p>
             </div>
-            <span class="mixer-stage-badge">Etapa 1/3</span>
+            <span class="mixer-stage-badge">Etapa 2/3</span>
           </div>
 
           <label class="mixer-recipe-picker" for="mixerRecipeSelect">
@@ -296,16 +296,18 @@
                   <label class="mixer-number-field" for="mixerTargetYield">
                     <span>Quiero preparar</span>
                     <div><input id="mixerTargetYield" type="number" inputmode="decimal" min="0.000001" step="any" autocomplete="off" placeholder="Ej. 1000"><b>ml</b></div>
-                    <small>Volumen objetivo. El cálculo de ingredientes se habilitará en la Etapa 2.</small>
+                    <small>Volumen objetivo para el escalado proporcional de ingredientes.</small>
                     <em id="mixerTargetYieldError" hidden>Escribe un valor mayor que 0.</em>
                   </label>
                 </div>
               </section>
             </div>
 
-            <section class="mixer-result-zone" id="mixerResultZone" aria-label="Resultado reservado para la Etapa 2">
-              <span aria-hidden="true">↗</span>
-              <div><strong>Resultado de Mixer</strong><p>Zona preparada. El escalado proporcional de ingredientes se activará en la Etapa 2.</p></div>
+            <section class="mixer-result-zone is-pending" id="mixerResultZone" aria-label="Resultado de Mixer">
+              <div class="mixer-result-placeholder">
+                <span aria-hidden="true">↗</span>
+                <div><strong>Resultado de Mixer</strong><p>Completa el rendimiento original y el volumen que quieres preparar.</p></div>
+              </div>
             </section>
           </div>
         </section>
@@ -379,7 +381,7 @@
             <div class="pwa-status-list" aria-live="polite">
               <div class="status-row"><span class="status-icon is-ok" aria-hidden="true">✓</span><span>Estado de instalación</span><strong id="pwaInstallStatus">Comprobando…</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">◈</span><span>Service Worker</span><strong id="pwaSwStatus">Comprobando…</strong></div>
-              <div class="status-row"><span class="status-icon" aria-hidden="true">#</span><span>Versión actual</span><strong id="pwaCurrentVersion">v1.15.0</strong></div>
+              <div class="status-row"><span class="status-icon" aria-hidden="true">#</span><span>Versión actual</span><strong id="pwaCurrentVersion">v1.16.0</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">⌕</span><span>Última búsqueda</span><strong id="pwaLastSearch">Nunca</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">◷</span><span>Última actualización</span><strong id="pwaLastUpdate">Nunca</strong></div>
             </div>

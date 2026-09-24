@@ -54,3 +54,12 @@
 - Sugerencia de rendimiento únicamente cuando todos los ingredientes positivos usan `ml`; `0 + unidad vacía` se muestra como **Al gusto** y no suma.
 - Sin conversiones automáticas, sin cambios de modelo de receta, JSON o exportaciones.
 - Caché/versionado PWA actualizado a v1.15.0 e inclusión de `js/mixer.js` en el app shell offline.
+## Ajuste v1.16.0 — Mixer Etapa 2/3
+
+- Motor proporcional temporal: `factor = volumen objetivo / rendimiento original`.
+- Resultado por ingrediente con columnas Ingrediente / Original / Necesario, sin conversiones de unidad ni escritura en storage.
+- `0 + unidad vacía` se presenta como **Al gusto** en origen y resultado; cantidades históricas ausentes se presentan como **Sin cantidad** y no se calculan.
+- Validación de rendimiento/objetivo mayor que cero, actualización automática al editar valores y limpieza segura al cambiar de receta.
+- Resultado responsive: grilla compacta en escritorio/iPad horizontal y filas apiladas en móvil/iPad vertical, sin scroll horizontal global.
+- PWA/cache y versión visible actualizados a v1.16.0.
+
