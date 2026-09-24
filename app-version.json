@@ -1,5 +1,5 @@
 {
-  "version": "1.17.0",
+  "version": "1.18.0",
   "schemaVersion": 1,
-  "notes": "Mixer final: hardening de cálculo y compatibilidad histórica, aislamiento sin persistencia, responsive iPad/móvil, accesibilidad básica y PWA/cache actualizado."
+  "notes": "Mixer: unidad de proporción dinámica ml/oz, detección segura por receta, sin conversiones, con hardening y cache PWA actualizado."
 }

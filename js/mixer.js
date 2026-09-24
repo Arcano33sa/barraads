@@ -10,6 +10,9 @@ const recipeCategory = document.getElementById('mixerRecipeCategory');
 const recipeGlassware = document.getElementById('mixerRecipeGlassware');
 const ingredients = document.getElementById('mixerIngredients');
 const originalYield = document.getElementById('mixerOriginalYield');
+const proportionUnit = document.getElementById('mixerProportionUnit');
+const originalUnit = document.getElementById('mixerOriginalUnit');
+const targetUnit = document.getElementById('mixerTargetUnit');
 const originalYieldHelp = document.getElementById('mixerOriginalYieldHelp');
 const targetYield = document.getElementById('mixerTargetYield');
 const originalYieldError = document.getElementById('mixerOriginalYieldError');
@@ -76,22 +79,76 @@ function uniqueSortedRecipes(){
     .sort((a,b)=>naturalCompare(a.nombre,b.nombre));
 }
 
-function safeMlYield(recipe){
+function normalizeVolumeUnit(value){
+  const unit = String(value ?? '').trim().toLocaleLowerCase('es');
+  return unit === 'ml' || unit === 'oz' ? unit : '';
+}
+
+function inferProportionUnit(recipe){
   const rows = Array.isArray(recipe?.ingredientes) ? recipe.ingredientes : [];
-  if (!rows.length) return null;
+  const units = new Set();
+  for (const row of rows) {
+    const state = ingredientState(row);
+    if (state.kind !== 'number') continue;
+    const unit = normalizeVolumeUnit(state.unit);
+    if (!unit) return '';
+    units.add(unit);
+    if (units.size > 1) return '';
+  }
+  return units.size === 1 ? [...units][0] : '';
+}
+
+function safeYieldForUnit(recipe,unit){
+  const normalizedUnit = normalizeVolumeUnit(unit);
+  const rows = Array.isArray(recipe?.ingredientes) ? recipe.ingredientes : [];
+  if (!normalizedUnit || !rows.length) return null;
   let total = 0;
-  let hasPositiveMl = false;
+  let hasPositive = false;
   for (const row of rows) {
     const state = ingredientState(row);
     if (state.kind === 'taste') continue;
     // Una cantidad histórica vacía/ilegible vuelve dudoso el rendimiento total.
     if (state.kind === 'missing') return null;
     if (state.amount < 0) return null;
-    if (String(state.unit).trim().toLocaleLowerCase('es') !== 'ml') return null;
+    if (normalizeVolumeUnit(state.unit) !== normalizedUnit) return null;
     total += state.amount;
-    if (state.amount > 0) hasPositiveMl = true;
+    if (state.amount > 0) hasPositive = true;
   }
-  return hasPositiveMl && Number.isFinite(total) && total > 0 ? total : null;
+  return hasPositive && Number.isFinite(total) && total > 0 ? total : null;
+}
+
+function currentProportionUnit(){
+  return normalizeVolumeUnit(proportionUnit?.value);
+}
+
+function syncUnitLabels(){
+  const label = currentProportionUnit() || '—';
+  if (originalUnit) originalUnit.textContent = label;
+  if (targetUnit) targetUnit.textContent = label;
+}
+
+function suggestYieldForActiveRecipe({clearTarget=false}={}){
+  const recipe = mixerRecipes.find(item => String(item.id) === String(activeRecipeId)) || null;
+  const unit = currentProportionUnit();
+  if (clearTarget && targetYield) targetYield.value = '';
+  if (originalYield) originalYield.value = '';
+  clearValidation(originalYield,originalYieldError);
+  clearValidation(targetYield,targetYieldError);
+
+  if (!recipe || !unit) {
+    if (originalYieldHelp) originalYieldHelp.textContent = unit
+      ? 'Escribe el rendimiento original manualmente. Mixer no convierte ni mezcla unidades.'
+      : 'Selecciona la unidad de proporción. Mixer no convierte unidades.';
+    return;
+  }
+
+  const suggested = safeYieldForUnit(recipe,unit);
+  if (suggested !== null && originalYield) {
+    originalYield.value = formatInputNumber(suggested);
+    if (originalYieldHelp) originalYieldHelp.textContent = `Sugerido con seguridad: suma de ingredientes numéricos expresados únicamente en ${unit} (${formatNumber(suggested)} ${unit}).`;
+  } else if (originalYieldHelp) {
+    originalYieldHelp.textContent = `Escribe el rendimiento original manualmente en ${unit}. Mixer no convierte ni mezcla unidades.`;
+  }
 }
 
 function ingredientState(row){
@@ -163,6 +220,11 @@ function renderResultPlaceholder(title,copy,{kind='pending'}={}){
 
 function renderScaledResults(recipe,originalValue,targetValue){
   if (!resultZone) return;
+  const unit = currentProportionUnit();
+  if (!unit) {
+    renderResultPlaceholder('Selecciona la unidad','Elige ml u oz para definir la proporción.',{kind:'invalid'});
+    return;
+  }
   const factor = targetValue / originalValue;
   if (!Number.isFinite(factor) || factor <= 0) {
     renderResultPlaceholder('Revisa los volúmenes','No fue posible calcular una proporción válida.',{kind:'invalid'});
@@ -189,11 +251,11 @@ function renderScaledResults(recipe,originalValue,targetValue){
     <div class="mixer-result-header">
       <div>
         <span class="mixer-result-kicker">Resultado proporcional</span>
-        <h3>Necesitas para ${escapeHtml(targetLabel)} ml</h3>
+        <h3>Necesitas para ${escapeHtml(targetLabel)} ${escapeHtml(unit)}</h3>
       </div>
       <span class="mixer-factor-badge" title="Volumen objetivo dividido entre rendimiento original">× ${escapeHtml(factorLabel)}</span>
     </div>
-    <div class="mixer-result-table" role="table" aria-label="Ingredientes escalados para ${escapeHtml(targetLabel)} mililitros">
+    <div class="mixer-result-table" role="table" aria-label="Ingredientes escalados para ${escapeHtml(targetLabel)} ${escapeHtml(unit)}">
       <div class="mixer-result-table-head" role="row">
         <span role="columnheader">Ingrediente</span>
         <span role="columnheader">Original</span>
@@ -208,6 +270,12 @@ function updateCalculation({showEmptyErrors=false}={}){
   const recipe = mixerRecipes.find(item => String(item.id) === String(activeRecipeId)) || null;
   if (!recipe) {
     renderResultPlaceholder('Resultado de Mixer','Selecciona una receta para comenzar.');
+    return;
+  }
+
+  const unit = currentProportionUnit();
+  if (!unit) {
+    renderResultPlaceholder('Selecciona la unidad','Elige ml u oz para definir la proporción.',{kind:'invalid'});
     return;
   }
 
@@ -230,6 +298,8 @@ function updateCalculation({showEmptyErrors=false}={}){
 function resetTemporaryValues(){
   if (originalYield) originalYield.value = '';
   if (targetYield) targetYield.value = '';
+  if (proportionUnit) proportionUnit.value = '';
+  syncUnitLabels();
   clearValidation(originalYield,originalYieldError);
   clearValidation(targetYield,targetYieldError);
   if (originalYieldHelp) originalYieldHelp.textContent = 'Selecciona una receta para definir su rendimiento base.';
@@ -266,13 +336,10 @@ function showRecipe(recipe){
   if (recipeGlassware) recipeGlassware.textContent = recipe.cristaleria || '—';
   renderIngredients(recipe);
 
-  const suggested = safeMlYield(recipe);
-  if (suggested !== null && originalYield) {
-    originalYield.value = formatInputNumber(suggested);
-    if (originalYieldHelp) originalYieldHelp.textContent = `Sugerido con seguridad: suma de ingredientes positivos expresados únicamente en ml (${formatNumber(suggested)} ml).`;
-  } else if (originalYieldHelp) {
-    originalYieldHelp.textContent = 'Escribe el rendimiento original manualmente. Mixer no convierte ni mezcla unidades.';
-  }
+  const inferredUnit = inferProportionUnit(recipe);
+  if (proportionUnit) proportionUnit.value = inferredUnit;
+  syncUnitLabels();
+  suggestYieldForActiveRecipe();
   updateCalculation();
 }
 
@@ -296,6 +363,14 @@ function populateSelector(){
 export function renderMixer(){
   populateSelector();
 }
+
+
+proportionUnit?.addEventListener('change',()=>{
+  syncUnitLabels();
+  // Cambiar la unidad nunca convierte números existentes: se limpian para evitar reinterpretarlos.
+  suggestYieldForActiveRecipe({clearTarget:true});
+  updateCalculation();
+});
 
 recipeSelect?.addEventListener('change',()=>{
   const recipe = mixerRecipes.find(item => String(item.id) === String(recipeSelect.value)) || null;

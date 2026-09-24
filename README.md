@@ -50,7 +50,7 @@
 - Nuevo módulo **Mixer** inmediatamente debajo de Favoritas.
 - Selector A-Z alimentado solo por recetas reales guardadas, sin duplicar ni modificar recetas.
 - Lectura de nombre, base principal, categoría, cristalería e ingredientes.
-- Campos temporales `Rendimiento original` y `Quiero preparar` en ml, vacíos por defecto y con entrada decimal.
+- Campos temporales `Rendimiento original` y `Quiero preparar`, originalmente planteados en ml; desde v1.18.0 la unidad de proporción es dinámica ml/oz.
 - Sugerencia de rendimiento únicamente cuando todos los ingredientes positivos usan `ml`; `0 + unidad vacía` se muestra como **Al gusto** y no suma.
 - Sin conversiones automáticas, sin cambios de modelo de receta, JSON o exportaciones.
 - Caché/versionado PWA actualizado a v1.15.0 e inclusión de `js/mixer.js` en el app shell offline.
@@ -73,3 +73,12 @@
 - Cambio de receta limpia estado temporal y evita mezclar ingredientes/resultados.
 - Responsive reforzado para PC, iPad horizontal/vertical, móvil y PWA standalone sin scroll horizontal general.
 - Cache/versión PWA actualizados a v1.17.0.
+
+
+## Ajuste v1.18.0 — Mixer: unidad dinámica de proporción
+- `Define la proporción` ya no queda fijado a ml: incorpora selector compacto ml/oz.
+- Recetas homogéneas en ml u oz seleccionan automáticamente su unidad y pueden sugerir el rendimiento sin convertir.
+- En recetas mixtas o ambiguas la unidad queda por elegir manualmente; Mixer no infiere ni convierte.
+- Al cambiar la unidad se limpian los valores temporales para impedir reinterpretar números como si hubieran sido convertidos.
+- Resultado, sufijos y accesibilidad muestran la unidad elegida.
+- PWA/cache actualizados a v1.18.0.

@@ -440,3 +440,9 @@ body.modal-open{overflow:hidden}
   .mixer-result-header>div{min-width:0}
   .mixer-result-header h3{overflow-wrap:anywhere}
 }
+
+
+/* Mixer — unidad dinámica de proporción v1.18.0 */
+.mixer-unit-picker{display:flex;align-items:center;gap:7px;align-self:center;padding:3px 5px 3px 8px;border-radius:999px;background:#e9e4db;color:#5c6a77}.mixer-unit-picker>span{font:700 7px/1 system-ui,-apple-system,sans-serif;text-transform:uppercase;letter-spacing:.8px;color:#6a5660}.mixer-unit-picker select{height:28px;min-width:64px;border:1px solid rgba(17,41,67,.14);border-radius:999px;background:#fbf8f2;color:#17324e;padding:0 24px 0 9px;font:700 10px/1 system-ui,-apple-system,sans-serif;outline:0;appearance:auto;-webkit-appearance:menulist}.mixer-unit-picker select:focus-visible{outline:2px solid rgba(159,74,82,.42);outline-offset:1px}.mixer-number-field b{min-width:46px}.mixer-unit-picker select{touch-action:manipulation}
+@media (max-width:650px){.mixer-unit-picker{padding-left:7px}.mixer-unit-picker>span{display:none}.mixer-unit-picker select{height:32px;min-width:70px;font-size:11px}}
+@media (pointer:coarse){.mixer-unit-picker select{min-height:34px}}

@@ -284,18 +284,25 @@
               <section class="mixer-volume-card" aria-labelledby="mixerVolumeTitle">
                 <div class="mixer-section-head">
                   <div><span>Volúmenes</span><h3 id="mixerVolumeTitle">Define la proporción</h3></div>
-                  <small>ml</small>
+                  <label class="mixer-unit-picker" for="mixerProportionUnit">
+                    <span>Unidad</span>
+                    <select id="mixerProportionUnit" aria-label="Unidad de proporción">
+                      <option value="">Elegir</option>
+                      <option value="ml">ml</option>
+                      <option value="oz">oz</option>
+                    </select>
+                  </label>
                 </div>
                 <div class="mixer-volume-fields">
                   <label class="mixer-number-field" for="mixerOriginalYield">
                     <span>Rendimiento original</span>
-                    <div><input id="mixerOriginalYield" type="number" inputmode="decimal" min="0.000001" step="any" autocomplete="off" placeholder="Ej. 250"><b>ml</b></div>
+                    <div><input id="mixerOriginalYield" type="number" inputmode="decimal" min="0.000001" step="any" autocomplete="off" placeholder="Ej. 250"><b id="mixerOriginalUnit">—</b></div>
                     <small id="mixerOriginalYieldHelp">Selecciona una receta para definir su rendimiento base.</small>
                     <em id="mixerOriginalYieldError" hidden>Escribe un valor mayor que 0.</em>
                   </label>
                   <label class="mixer-number-field" for="mixerTargetYield">
                     <span>Quiero preparar</span>
-                    <div><input id="mixerTargetYield" type="number" inputmode="decimal" min="0.000001" step="any" autocomplete="off" placeholder="Ej. 1000"><b>ml</b></div>
+                    <div><input id="mixerTargetYield" type="number" inputmode="decimal" min="0.000001" step="any" autocomplete="off" placeholder="Ej. 1000"><b id="mixerTargetUnit">—</b></div>
                     <small>Volumen objetivo para el escalado proporcional de ingredientes.</small>
                     <em id="mixerTargetYieldError" hidden>Escribe un valor mayor que 0.</em>
                   </label>
@@ -381,7 +388,7 @@
             <div class="pwa-status-list" aria-live="polite">
               <div class="status-row"><span class="status-icon is-ok" aria-hidden="true">✓</span><span>Estado de instalación</span><strong id="pwaInstallStatus">Comprobando…</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">◈</span><span>Service Worker</span><strong id="pwaSwStatus">Comprobando…</strong></div>
-              <div class="status-row"><span class="status-icon" aria-hidden="true">#</span><span>Versión actual</span><strong id="pwaCurrentVersion">v1.17.0</strong></div>
+              <div class="status-row"><span class="status-icon" aria-hidden="true">#</span><span>Versión actual</span><strong id="pwaCurrentVersion">v1.18.0</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">⌕</span><span>Última búsqueda</span><strong id="pwaLastSearch">Nunca</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">◷</span><span>Última actualización</span><strong id="pwaLastUpdate">Nunca</strong></div>
             </div>
