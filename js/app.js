@@ -12,6 +12,7 @@ import {
 } from './media.js';
 import { initSettings, refreshSettingsView } from './settings.js';
 import { exportRecipesFile } from './export.js';
+import { renderMixer } from './mixer.js';
 
 const sidebar = document.getElementById('sidebar');
 const backdrop = document.getElementById('backdrop');
@@ -194,7 +195,7 @@ function openSidebar(){
 
 function titleFor(viewName){
   const labels = {
-    inicio:'Inicio', recetas:'Recetas', 'por-base':'Por base', favoritas:'Favoritas',
+    inicio:'Inicio', recetas:'Recetas', 'por-base':'Por base', favoritas:'Favoritas', mixer:'Mixer',
     catalogo:'Catálogo', configuracion:'Configuración', 'nueva-receta':'Nueva receta',
     'ficha-receta':'Ficha de receta'
   };
@@ -222,6 +223,7 @@ function showView(viewName,{updateHash=true}={}){
   if (actualView === 'recetas') void renderRecipesLibrary();
   if (actualView === 'por-base') void renderBaseLibrary();
   if (actualView === 'favoritas') void renderFavorites();
+  if (actualView === 'mixer') renderMixer();
   if (actualView === 'nueva-receta') void prepareNewRecipeView();
   if (actualView === 'ficha-receta') void renderRecipeDetail(activeRecipeId);
   if (updateHash && location.hash !== `#${actualView}`) history.pushState(null,'',`#${actualView}`);

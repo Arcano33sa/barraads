@@ -43,3 +43,14 @@
 - Un registro histórico con cantidad cero y unidad explícita conserva su unidad en la exportación; no se migra visualmente a “Al gusto”.
 - Respaldo/restauración JSON conserva cero numérico y unidad vacía mediante la sanitización existente, sin crear unidades fantasma ni duplicar recetas.
 - Caché/versionado PWA actualizado a v1.14.12, manteniendo datos locales, favoritos, configuración y fotografías fuera del ciclo destructivo de actualización.
+
+
+## Ajuste v1.15.0 — Mixer Etapa 1/3
+
+- Nuevo módulo **Mixer** inmediatamente debajo de Favoritas.
+- Selector A-Z alimentado solo por recetas reales guardadas, sin duplicar ni modificar recetas.
+- Lectura de nombre, base principal, categoría, cristalería e ingredientes.
+- Campos temporales `Rendimiento original` y `Quiero preparar` en ml, vacíos por defecto y con entrada decimal.
+- Sugerencia de rendimiento únicamente cuando todos los ingredientes positivos usan `ml`; `0 + unidad vacía` se muestra como **Al gusto** y no suma.
+- Sin conversiones automáticas, sin cambios de modelo de receta, JSON o exportaciones.
+- Caché/versionado PWA actualizado a v1.15.0 e inclusión de `js/mixer.js` en el app shell offline.

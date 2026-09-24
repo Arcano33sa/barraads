@@ -37,6 +37,9 @@
         <button class="nav-item" data-view="favoritas" type="button">
           <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 2.8 2.85 5.78 6.38.93-4.62 4.5 1.09 6.35L12 17.37l-5.7 3 1.09-6.35-4.62-4.5 6.38-.93z"/></svg></span><span>Favoritas</span>
         </button>
+        <button class="nav-item" data-view="mixer" type="button">
+          <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 3h8M10 3v5.2l-4.7 8.1A3.1 3.1 0 0 0 8 21h8a3.1 3.1 0 0 0 2.7-4.7L14 8.2V3M8.4 14h7.2"/></svg></span><span>Mixer</span>
+        </button>
         <button class="nav-item" data-view="catalogo" type="button">
           <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h4v15H4zm6-2h4v17h-4zm6 4h4v13h-4z"/></svg></span><span>Catálogo</span>
         </button>
@@ -220,6 +223,94 @@
         </section>
       </section>
 
+      <section class="view mixer-view" id="view-mixer" data-view-panel="mixer">
+        <div class="hero-row mixer-hero">
+          <div>
+            <p class="eyebrow">Mixer</p>
+            <h1>Escala tus recetas.</h1>
+            <p class="hero-subtitle">Selecciona una receta guardada y define el volumen base y el volumen que quieres preparar.</p>
+          </div>
+          <blockquote>“La proporción correcta<br>también es parte del ritual.”</blockquote>
+        </div>
+
+        <section class="mixer-card" aria-labelledby="mixerTitle">
+          <div class="mixer-card-heading">
+            <div>
+              <p class="mixer-kicker">Cálculo proporcional</p>
+              <h2 id="mixerTitle">Mixer</h2>
+              <p>En esta primera etapa se prepara la receta y su rendimiento. El escalado final se activará en la Etapa 2.</p>
+            </div>
+            <span class="mixer-stage-badge">Etapa 1/3</span>
+          </div>
+
+          <label class="mixer-recipe-picker" for="mixerRecipeSelect">
+            <span>Receta guardada</span>
+            <div class="mixer-select-wrap">
+              <select id="mixerRecipeSelect" aria-label="Seleccionar receta guardada">
+                <option value="">Selecciona una receta…</option>
+              </select>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9.5 5 5 5-5"/></svg>
+            </div>
+          </label>
+
+          <div class="mixer-empty" id="mixerEmpty">
+            <span aria-hidden="true">◈</span>
+            <strong>Selecciona una receta para comenzar.</strong>
+            <p>Mixer trabaja solo con recetas reales guardadas y nunca modifica la receta fuente.</p>
+          </div>
+
+          <div class="mixer-recipe-panel" id="mixerRecipePanel" hidden>
+            <div class="mixer-recipe-summary">
+              <div class="mixer-summary-title">
+                <span>Receta seleccionada</span>
+                <h3 id="mixerRecipeName">—</h3>
+              </div>
+              <div class="mixer-meta-grid">
+                <div><span>Base principal</span><strong id="mixerRecipeBase">—</strong></div>
+                <div><span>Categoría</span><strong id="mixerRecipeCategory">—</strong></div>
+                <div><span>Cristalería</span><strong id="mixerRecipeGlassware">—</strong></div>
+              </div>
+            </div>
+
+            <div class="mixer-work-grid">
+              <section class="mixer-ingredients-card" aria-labelledby="mixerIngredientsTitle">
+                <div class="mixer-section-head">
+                  <div><span>Lectura de receta</span><h3 id="mixerIngredientsTitle">Ingredientes</h3></div>
+                  <small>Solo lectura</small>
+                </div>
+                <div class="mixer-ingredients" id="mixerIngredients"></div>
+              </section>
+
+              <section class="mixer-volume-card" aria-labelledby="mixerVolumeTitle">
+                <div class="mixer-section-head">
+                  <div><span>Volúmenes</span><h3 id="mixerVolumeTitle">Define la proporción</h3></div>
+                  <small>ml</small>
+                </div>
+                <div class="mixer-volume-fields">
+                  <label class="mixer-number-field" for="mixerOriginalYield">
+                    <span>Rendimiento original</span>
+                    <div><input id="mixerOriginalYield" type="number" inputmode="decimal" min="0.000001" step="any" autocomplete="off" placeholder="Ej. 250"><b>ml</b></div>
+                    <small id="mixerOriginalYieldHelp">Selecciona una receta para definir su rendimiento base.</small>
+                    <em id="mixerOriginalYieldError" hidden>Escribe un valor mayor que 0.</em>
+                  </label>
+                  <label class="mixer-number-field" for="mixerTargetYield">
+                    <span>Quiero preparar</span>
+                    <div><input id="mixerTargetYield" type="number" inputmode="decimal" min="0.000001" step="any" autocomplete="off" placeholder="Ej. 1000"><b>ml</b></div>
+                    <small>Volumen objetivo. El cálculo de ingredientes se habilitará en la Etapa 2.</small>
+                    <em id="mixerTargetYieldError" hidden>Escribe un valor mayor que 0.</em>
+                  </label>
+                </div>
+              </section>
+            </div>
+
+            <section class="mixer-result-zone" id="mixerResultZone" aria-label="Resultado reservado para la Etapa 2">
+              <span aria-hidden="true">↗</span>
+              <div><strong>Resultado de Mixer</strong><p>Zona preparada. El escalado proporcional de ingredientes se activará en la Etapa 2.</p></div>
+            </section>
+          </div>
+        </section>
+      </section>
+
       <section class="view catalog-view" id="view-catalogo" data-view-panel="catalogo">
         <div class="hero-row catalog-hero">
           <div>
@@ -288,7 +379,7 @@
             <div class="pwa-status-list" aria-live="polite">
               <div class="status-row"><span class="status-icon is-ok" aria-hidden="true">✓</span><span>Estado de instalación</span><strong id="pwaInstallStatus">Comprobando…</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">◈</span><span>Service Worker</span><strong id="pwaSwStatus">Comprobando…</strong></div>
-              <div class="status-row"><span class="status-icon" aria-hidden="true">#</span><span>Versión actual</span><strong id="pwaCurrentVersion">v1.14.12</strong></div>
+              <div class="status-row"><span class="status-icon" aria-hidden="true">#</span><span>Versión actual</span><strong id="pwaCurrentVersion">v1.15.0</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">⌕</span><span>Última búsqueda</span><strong id="pwaLastSearch">Nunca</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">◷</span><span>Última actualización</span><strong id="pwaLastUpdate">Nunca</strong></div>
             </div>
