@@ -1,0 +1,25 @@
+{
+  "app": "Barra de El Ágora del Sir",
+  "schemaVersion": 1,
+  "appVersion": "1.21.0",
+  "data": {
+    "recipes": [{
+      "id": "e2-legacy", "nombre": "E2 Historica", "basePrincipal": "Ron",
+      "categoria": "Cóctel", "cristaleria": "Coupé",
+      "ingredientes": [
+        {"ingrediente": "Hielo", "cantidad": 0, "unidad": "ml"},
+        {"ingrediente": "Menta", "cantidad": 0, "unidad": "medida antigua"},
+        {"ingrediente": "Ron blanco", "cantidad": 5, "unidad": "Al Gusto"}
+      ],
+      "alquimia": [{"orden": 1, "texto": "Mezclar."}]
+    }],
+    "catalogs": {
+      "bases": ["Ron"], "categorias": ["Cóctel"], "cristaleria": ["Coupé"],
+      "unidades": ["ml", "oz", "unidad", "Al Gusto"],
+      "ingredientes": ["Hielo", "Menta", "Ron blanco"],
+      "tecnicas": ["Mezclar"], "decoraciones": [], "etiquetas": []
+    },
+    "favoritas": [], "configuracion": {}, "mixerHistorico": []
+  },
+  "media": {"strategy": "embedded-optimized-full-v2", "photos": []}
+}
