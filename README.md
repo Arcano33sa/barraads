@@ -82,3 +82,23 @@
 - Al cambiar la unidad se limpian los valores temporales para impedir reinterpretar números como si hubieran sido convertidos.
 - Resultado, sufijos y accesibilidad muestran la unidad elegida.
 - PWA/cache actualizados a v1.18.0.
+
+
+## Ajuste v1.19.0 — Mixer Histórico Etapa 1/2
+- Guardado manual de cálculos válidos desde Mixer; calcular o cambiar valores no persiste nada automáticamente.
+- Colección local aislada `mixer.history.v1` con snapshot del cálculo, unidad de proporción, factor, fecha/hora e ingredientes.
+- Conservación explícita de “Al gusto” y cantidades históricas vacías sin convertirlas en cero.
+- Respaldo/restauración JSON incluye `data.mixerHistorico` y acepta respaldos antiguos sin esa colección.
+- Acceso “Histórico” preparado para la vista alfabética de la Etapa 2.
+- PWA/cache actualizados a v1.19.0.
+
+
+## Ajuste v1.20.0 — Mixer Histórico Etapa 2/2
+
+- Histórico de Mixer en pantalla propia, sin convertirlo en módulo del menú principal.
+- Agrupación A-Z/# con accordions cerrados por defecto y orden estable por receta, unidad, objetivo y fecha.
+- Acciones Ver, Borrar y Usar nuevamente sobre snapshots guardados.
+- Ver conserva el snapshot aunque la receta fuente cambie o deje de existir.
+- Usar nuevamente carga rendimiento, unidad y objetivo guardados sobre la receta actual cuando el recipeId todavía existe, sin autoguardar.
+- Borrado aislado con confirmación; JSON conserva/restaura Histórico sin persistir el estado visual de los accordions.
+- Responsive/hardening PC, iPad y móvil; PWA/cache actualizados a v1.20.0.

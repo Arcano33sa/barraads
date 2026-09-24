@@ -1,4 +1,4 @@
-const APP_VERSION = '1.18.0';
+const APP_VERSION = '1.20.0';
 const CACHE_NAME = `agora-sir-${APP_VERSION}`;
 const APP_SHELL = [
   './',
@@ -17,7 +17,8 @@ const APP_SHELL = [
   './js/media.js',
   './js/settings.js',
   './js/export.js',
-  './js/mixer.js'
+  './js/mixer.js',
+  './js/mixer-history.js'
 ];
 
 self.addEventListener('install',event => {

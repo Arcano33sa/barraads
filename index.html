@@ -317,6 +317,43 @@
               </div>
             </section>
           </div>
+          <div class="mixer-result-actions" id="mixerResultActions" aria-label="Acciones de Mixer">
+            <button class="primary-button mixer-save-button" id="mixerSaveCalculation" type="button" aria-label="Guardar cálculo actual en Histórico" hidden disabled>Guardar cálculo</button>
+            <button class="secondary-action mixer-history-button" id="mixerHistoryButton" type="button" aria-label="Abrir Histórico de Mixer">Histórico</button>
+            <p class="mixer-action-status" id="mixerActionStatus" role="status" aria-live="polite"></p>
+          </div>
+        </section>
+      </section>
+
+      <section class="view mixer-history-view" id="view-mixer-history" data-view-panel="mixer-history">
+        <div class="hero-row mixer-history-hero">
+          <div>
+            <p class="eyebrow">Mixer</p>
+            <h1>Histórico de cálculos.</h1>
+            <p class="hero-subtitle">Consulta exactamente lo que guardaste, reutiliza una proporción o elimina únicamente el cálculo que ya no necesites.</p>
+          </div>
+          <blockquote>“La memoria de una buena mezcla<br>también merece orden.”</blockquote>
+        </div>
+
+        <section class="mixer-history-card" aria-labelledby="mixerHistoryTitle">
+          <div class="mixer-history-heading">
+            <div>
+              <p class="mixer-kicker">Histórico de Mixer</p>
+              <h2 id="mixerHistoryTitle">Cálculos guardados</h2>
+              <p>Ordenados por receta y agrupados alfabéticamente. Las letras se abren solo cuando tú lo decides.</p>
+            </div>
+            <div class="mixer-history-heading-actions">
+              <span class="mixer-history-total" id="mixerHistoryTotal">0 cálculos</span>
+              <button class="secondary-action mixer-history-back" id="mixerHistoryBack" type="button" aria-label="Volver a Mixer">← Volver a Mixer</button>
+            </div>
+          </div>
+          <p class="mixer-history-status" id="mixerHistoryStatus" role="status" aria-live="polite"></p>
+          <div class="mixer-history-list" id="mixerHistoryList" aria-label="Histórico alfabético de Mixer"></div>
+          <div class="mixer-history-empty" id="mixerHistoryEmpty" hidden>
+            <span aria-hidden="true">◇</span>
+            <strong>Aún no hay cálculos guardados.</strong>
+            <p>Vuelve a Mixer, realiza un cálculo y pulsa “Guardar cálculo”.</p>
+          </div>
         </section>
       </section>
 
@@ -388,7 +425,7 @@
             <div class="pwa-status-list" aria-live="polite">
               <div class="status-row"><span class="status-icon is-ok" aria-hidden="true">✓</span><span>Estado de instalación</span><strong id="pwaInstallStatus">Comprobando…</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">◈</span><span>Service Worker</span><strong id="pwaSwStatus">Comprobando…</strong></div>
-              <div class="status-row"><span class="status-icon" aria-hidden="true">#</span><span>Versión actual</span><strong id="pwaCurrentVersion">v1.18.0</strong></div>
+              <div class="status-row"><span class="status-icon" aria-hidden="true">#</span><span>Versión actual</span><strong id="pwaCurrentVersion">v1.20.0</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">⌕</span><span>Última búsqueda</span><strong id="pwaLastSearch">Nunca</strong></div>
               <div class="status-row"><span class="status-icon" aria-hidden="true">◷</span><span>Última actualización</span><strong id="pwaLastUpdate">Nunca</strong></div>
             </div>
@@ -408,10 +445,10 @@
         <section class="settings-card" aria-labelledby="backupJsonTitle">
           <div class="settings-card-title">
             <span class="settings-title-icon" aria-hidden="true">▤</span>
-            <div><h2 id="backupJsonTitle">Respaldo JSON</h2><p>Guarda una copia de tus recetas, favoritas y configuración.</p></div>
+            <div><h2 id="backupJsonTitle">Respaldo JSON</h2><p>Guarda una copia de tus recetas, favoritas, cálculos de Mixer y configuración.</p></div>
           </div>
           <div class="settings-action-row">
-            <div class="settings-note"><span aria-hidden="true">ⓘ</span><p>El respaldo incluye recetas, catálogos, favoritas, configuración y las fotografías optimizadas. Las imágenes se incorporan una sola vez para evitar duplicados innecesarios.</p></div>
+            <div class="settings-note"><span aria-hidden="true">ⓘ</span><p>El respaldo incluye recetas, catálogos, favoritas, Histórico de Mixer, configuración y las fotografías optimizadas. Las imágenes se incorporan una sola vez para evitar duplicados innecesarios.</p></div>
             <button class="primary-button settings-wide-button" id="exportBackupBtn" type="button">⇧ <span>Crear respaldo JSON</span></button>
           </div>
           <p class="settings-inline-status" id="backupExportStatus" role="status" aria-live="polite"></p>
@@ -705,6 +742,33 @@
     </section>
   </div>
 
+  <div class="modal-layer" id="mixerHistoryDetailModal" hidden>
+    <div class="modal-backdrop" data-close-mixer-history-detail></div>
+    <section class="catalog-modal-card mixer-history-detail-card" role="dialog" aria-modal="true" aria-labelledby="mixerHistoryDetailTitle">
+      <button class="modal-close" id="mixerHistoryDetailClose" type="button" aria-label="Cerrar detalle de cálculo">×</button>
+      <p class="catalog-kicker">Snapshot guardado</p>
+      <h2 id="mixerHistoryDetailTitle">Detalle del cálculo</h2>
+      <div id="mixerHistoryDetailBody"></div>
+      <div class="modal-actions mixer-history-detail-actions">
+        <button class="secondary-action modal-secondary" id="mixerHistoryDetailDone" type="button">Cerrar</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-layer" id="mixerHistoryDeleteModal" hidden>
+    <div class="modal-backdrop" data-close-mixer-history-delete></div>
+    <section class="catalog-modal-card delete-modal-card mixer-history-delete-card" role="dialog" aria-modal="true" aria-labelledby="mixerHistoryDeleteTitle">
+      <button class="modal-close" id="mixerHistoryDeleteClose" type="button" aria-label="Cerrar confirmación de borrado">×</button>
+      <p class="catalog-kicker">Confirmación</p>
+      <h2 id="mixerHistoryDeleteTitle">Borrar cálculo histórico</h2>
+      <p class="delete-copy" id="mixerHistoryDeleteCopy">Se eliminará únicamente este cálculo guardado.</p>
+      <div class="modal-actions">
+        <button class="secondary-action modal-secondary" id="mixerHistoryDeleteCancel" type="button">Cancelar</button>
+        <button class="danger-button" id="mixerHistoryDeleteConfirm" type="button">Borrar cálculo</button>
+      </div>
+    </section>
+  </div>
+
   <div class="modal-layer" id="restoreConfirmModal" hidden>
     <div class="modal-backdrop" data-close-restore-confirm></div>
     <section class="catalog-modal-card restore-modal-card" role="dialog" aria-modal="true" aria-labelledby="restoreConfirmTitle">
@@ -726,7 +790,7 @@
       <button class="modal-close" id="clearDataModalClose" type="button" aria-label="Cerrar">×</button>
       <p class="catalog-kicker">Confirmación</p>
       <h2 id="clearDataModalTitle">Eliminar todos los datos</h2>
-      <p class="delete-copy">Se borrarán recetas, catálogos personalizados, favoritas, fotografías y configuración local. La aplicación seguirá instalada.</p>
+      <p class="delete-copy">Se borrarán recetas, catálogos personalizados, favoritas, cálculos guardados de Mixer, fotografías y configuración local. La aplicación seguirá instalada.</p>
       <label class="modal-field" for="clearDataConfirmInput"><span>Escribe <b>BORRAR</b> para confirmar</span><input id="clearDataConfirmInput" type="text" autocomplete="off" placeholder="BORRAR"></label>
       <div class="modal-actions">
         <button class="secondary-action modal-secondary" id="clearDataCancelBtn" type="button">Cancelar</button>

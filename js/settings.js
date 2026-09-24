@@ -1,12 +1,13 @@
 import { storage } from './storage.js';
 import { CATALOG_DEFINITIONS, loadCatalogs, saveCatalogs } from './catalog.js';
 import { loadRecipes, saveRecipes, sanitizeRecipeDraft } from './recipes.js';
+import { MIXER_HISTORY_KEY, loadMixerHistory, saveMixerHistory, normalizeMixerHistory } from './mixer-history.js';
 import {
   listRecipePhotos, replaceAllRecipePhotos, processRecipePhotoDataUrl,
   recipePhotoRecordFromEntries, photoEntryFromProcessed, buildPhotoReferences
 } from './media.js';
 
-export const APP_VERSION = '1.18.0';
+export const APP_VERSION = '1.20.0';
 export const BACKUP_SCHEMA_VERSION = 1;
 const SETTINGS_KEY = 'settings.v1';
 const RUNTIME_KEY = 'runtime.pwa.v1';
@@ -266,7 +267,8 @@ async function buildBackup(){
       recipes,
       catalogs,
       favoritas:recipes.filter(recipe=>recipe.favorita).map(recipe=>recipe.id),
-      configuracion:safeSettings()
+      configuracion:safeSettings(),
+      mixerHistorico:loadMixerHistory(storage)
     },
     media:{strategy:'embedded-optimized-full-v2',photos:media}
   };
@@ -294,7 +296,7 @@ async function exportBackup(){
   try {
     const payload=await buildBackup();
     const bytes=downloadJson(payload);
-    setStatus(elements.backupExportStatus,`Respaldo creado correctamente · ${payload.data.recipes.length} recetas · ${payload.media.photos.length} fotografías · ${formatBytes(bytes)}.`,'success');
+    setStatus(elements.backupExportStatus,`Respaldo creado correctamente · ${payload.data.recipes.length} recetas · ${payload.data.mixerHistorico.length} cálculos Mixer · ${payload.media.photos.length} fotografías · ${formatBytes(bytes)}.`,'success');
   } catch (error) {
     setStatus(elements.backupExportStatus,error?.message || 'No fue posible crear el respaldo.','error');
   } finally {
@@ -350,6 +352,10 @@ function validateBackup(payload){
   const config=payload.data.configuracion && typeof payload.data.configuracion === 'object' && !Array.isArray(payload.data.configuracion)
     ? payload.data.configuracion : {};
 
+  // Compatibilidad: respaldos anteriores a Mixer Histórico no traen esta colección.
+  // En ese caso la restauración continúa normalmente con histórico vacío.
+  const mixerHistory=normalizeMixerHistory(payload.data.mixerHistorico ?? []);
+
   // Compatibilidad: v2 actual usa media.photos; respaldos de una foto podían omitir photoId/position.
   // También se acepta un bloque media como arreglo o media.recipePhotos si proviene de una variante anterior.
   let photos=[];
@@ -387,7 +393,7 @@ function validateBackup(payload){
     delete photo.sourceIndex;
   });
 
-  return {recipes,catalogs,favoritas:[...favoriteSet],config,photos:safePhotos,createdAt:payload.createdAt,appVersion:payload.appVersion};
+  return {recipes,catalogs,favoritas:[...favoriteSet],config,mixerHistory,photos:safePhotos,createdAt:payload.createdAt,appVersion:payload.appVersion};
 }
 function openRestoreModal(validated){
   pendingRestore=validated;
@@ -396,6 +402,7 @@ function openRestoreModal(validated){
     <div><strong>${validated.recipes.length}</strong><span>Recetas</span></div>
     <div><strong>${validated.favoritas.length}</strong><span>Favoritas</span></div>
     <div><strong>${Object.values(validated.catalogs).reduce((sum,items)=>sum+items.length,0)}</strong><span>Elementos de catálogo</span></div>
+    <div><strong>${validated.mixerHistory.length}</strong><span>Cálculos Mixer</span></div>
     <div><strong>${validated.photos.length}</strong><span>Fotografías</span></div>`;
   if (elements.restoreConfirmModal) elements.restoreConfirmModal.hidden=false;
   document.body.classList.add('modal-open');
@@ -439,6 +446,7 @@ async function restoreConfirmed(){
     const oldRecipes=loadRecipes(storage);
     const oldCatalogs=loadCatalogs(storage);
     const oldSettings=safeSettings();
+    const oldMixerHistory=loadMixerHistory(storage);
     const oldPhotos=await listRecipePhotos();
 
     const nextRecipes=validated.recipes.map(recipe=>({...recipe,foto:null,fotos:[]}));
@@ -465,11 +473,13 @@ async function restoreConfirmed(){
       saveCatalogs(storage,validated.catalogs);
       saveRecipes(storage,nextRecipes);
       storage.set(SETTINGS_KEY,validated.config);
+      saveMixerHistory(storage,validated.mixerHistory);
     } catch (error) {
       await replaceAllRecipePhotos(oldPhotos).catch(()=>{});
       saveCatalogs(storage,oldCatalogs);
       saveRecipes(storage,oldRecipes);
       storage.set(SETTINGS_KEY,oldSettings);
+      saveMixerHistory(storage,oldMixerHistory);
       throw error;
     }
 
@@ -504,6 +514,7 @@ async function clearLocalData(){
     storage.remove('recipes.v1');
     storage.remove('catalogs.v1');
     storage.remove(SETTINGS_KEY);
+    storage.remove(MIXER_HISTORY_KEY);
     storage.remove(RUNTIME_KEY);
     closeClearModal();
     setStatus(elements.clearDataStatus,'Datos eliminados. Recargando la aplicación…','success');

@@ -12,7 +12,7 @@ import {
 } from './media.js';
 import { initSettings, refreshSettingsView } from './settings.js';
 import { exportRecipesFile } from './export.js';
-import { renderMixer } from './mixer.js';
+import { renderMixer, renderMixerHistory } from './mixer.js';
 
 const sidebar = document.getElementById('sidebar');
 const backdrop = document.getElementById('backdrop');
@@ -195,7 +195,7 @@ function openSidebar(){
 
 function titleFor(viewName){
   const labels = {
-    inicio:'Inicio', recetas:'Recetas', 'por-base':'Por base', favoritas:'Favoritas', mixer:'Mixer',
+    inicio:'Inicio', recetas:'Recetas', 'por-base':'Por base', favoritas:'Favoritas', mixer:'Mixer', 'mixer-history':'Histórico de Mixer',
     catalogo:'Catálogo', configuracion:'Configuración', 'nueva-receta':'Nueva receta',
     'ficha-receta':'Ficha de receta'
   };
@@ -208,7 +208,7 @@ function showView(viewName,{updateHash=true}={}){
   const actualView = target.dataset.viewPanel;
 
   panels.forEach(panel => panel.classList.toggle('is-visible',panel === target));
-  const activeNavView = actualView === 'nueva-receta' ? 'inicio' : (actualView === 'ficha-receta' ? 'recetas' : actualView);
+  const activeNavView = actualView === 'nueva-receta' ? 'inicio' : (actualView === 'ficha-receta' ? 'recetas' : (actualView === 'mixer-history' ? 'mixer' : actualView));
   navRoot?.querySelectorAll('[data-view]').forEach(button => {
     button.classList.toggle('is-active',button.dataset.view === activeNavView);
   });
@@ -224,6 +224,7 @@ function showView(viewName,{updateHash=true}={}){
   if (actualView === 'por-base') void renderBaseLibrary();
   if (actualView === 'favoritas') void renderFavorites();
   if (actualView === 'mixer') renderMixer();
+  if (actualView === 'mixer-history') renderMixerHistory({resetOpen:true});
   if (actualView === 'nueva-receta') void prepareNewRecipeView();
   if (actualView === 'ficha-receta') void renderRecipeDetail(activeRecipeId);
   if (updateHash && location.hash !== `#${actualView}`) history.pushState(null,'',`#${actualView}`);
