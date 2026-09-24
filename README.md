@@ -63,3 +63,13 @@
 - Resultado responsive: grilla compacta en escritorio/iPad horizontal y filas apiladas en móvil/iPad vertical, sin scroll horizontal global.
 - PWA/cache y versión visible actualizados a v1.16.0.
 
+
+
+## Ajuste v1.17.0 — Mixer final
+- Mixer queda cerrado como calculadora aislada de solo lectura: no modifica recetas ni persiste rendimiento, objetivo, factor o resultados.
+- Validación endurecida para valores vacíos, 0, negativos, NaN/Infinity y precisión decimal; sin depender de truthy/falsy para cantidades 0.
+- “Al gusto” permanece ligado exclusivamente a cantidad 0 + unidad vacía; cantidades históricas vacías no se convierten en 0.
+- Sugerencia automática de rendimiento solo cuando toda la receta calculable es inequívocamente ml (permitiendo filas “Al gusto” sin volumen).
+- Cambio de receta limpia estado temporal y evita mezclar ingredientes/resultados.
+- Responsive reforzado para PC, iPad horizontal/vertical, móvil y PWA standalone sin scroll horizontal general.
+- Cache/versión PWA actualizados a v1.17.0.

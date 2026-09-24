@@ -30,20 +30,36 @@ function naturalCompare(a,b){
   return String(a ?? '').localeCompare(String(b ?? ''),'es',{numeric:true,sensitivity:'base'});
 }
 
+function parseFiniteDecimal(value){
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value !== 'string') return null;
+  const raw = value.trim();
+  if (!raw) return null;
+  // Aceptar coma o punto decimal sin usar parseFloat(), que tolera basura al final.
+  const normalized = raw.includes(',') && !raw.includes('.') ? raw.replace(',', '.') : raw;
+  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized)) return null;
+  const number = Number(normalized);
+  return Number.isFinite(number) ? number : null;
+}
+
 function formatNumber(value,{maximumFractionDigits=2}={}){
-  const number = Number(value);
-  if (!Number.isFinite(number)) return '';
+  const number = parseFiniteDecimal(value);
+  if (number === null) return '';
   const normalized = Object.is(number,-0) ? 0 : number;
+  // Evitar que una cantidad positiva muy pequeña se vea como 0 por redondeo visual.
+  const precision = Math.abs(normalized) > 0 && Math.abs(normalized) < 0.01
+    ? Math.max(maximumFractionDigits,6)
+    : maximumFractionDigits;
   return new Intl.NumberFormat('es-NI',{
-    maximumFractionDigits,
+    maximumFractionDigits:precision,
     minimumFractionDigits:0,
     useGrouping:false
   }).format(normalized);
 }
 
 function formatInputNumber(value){
-  const number = Number(value);
-  if (!Number.isFinite(number)) return '';
+  const number = parseFiniteDecimal(value);
+  if (number === null) return '';
   return String(Math.round((number + Number.EPSILON) * 1e6) / 1e6);
 }
 
@@ -62,11 +78,20 @@ function uniqueSortedRecipes(){
 
 function safeMlYield(recipe){
   const rows = Array.isArray(recipe?.ingredientes) ? recipe.ingredientes : [];
-  const positive = rows.filter(row => Number.isFinite(Number(row?.cantidad)) && Number(row.cantidad) > 0);
-  if (!positive.length) return null;
-  if (positive.some(row => String(row?.unidad || '').trim().toLocaleLowerCase('es') !== 'ml')) return null;
-  const total = positive.reduce((sum,row)=>sum + Number(row.cantidad),0);
-  return Number.isFinite(total) && total > 0 ? total : null;
+  if (!rows.length) return null;
+  let total = 0;
+  let hasPositiveMl = false;
+  for (const row of rows) {
+    const state = ingredientState(row);
+    if (state.kind === 'taste') continue;
+    // Una cantidad histórica vacía/ilegible vuelve dudoso el rendimiento total.
+    if (state.kind === 'missing') return null;
+    if (state.amount < 0) return null;
+    if (String(state.unit).trim().toLocaleLowerCase('es') !== 'ml') return null;
+    total += state.amount;
+    if (state.amount > 0) hasPositiveMl = true;
+  }
+  return hasPositiveMl && Number.isFinite(total) && total > 0 ? total : null;
 }
 
 function ingredientState(row){
@@ -78,8 +103,8 @@ function ingredientState(row){
 
   if (!hasAmount) return { kind:'missing', unit:'' };
 
-  const amount = Number(rawAmount);
-  if (!Number.isFinite(amount)) return { kind:'missing', unit:'' };
+  const amount = parseFiniteDecimal(rawAmount);
+  if (amount === null) return { kind:'missing', unit:'' };
   if (amount === 0 && !unit) return { kind:'taste', unit:'' };
   return { kind:'number', amount, unit };
 }
@@ -106,8 +131,9 @@ function clearValidation(input,error){
 function positiveInputState(input){
   const raw = input?.value?.trim?.() ?? '';
   if (!raw) return { valid:false, empty:true, value:null, message:'Completa este valor.' };
-  const value = Number(raw);
-  if (!Number.isFinite(value)) return { valid:false, empty:false, value:null, message:'Escribe un número válido.' };
+  const nativeValue = Number.isFinite(input?.valueAsNumber) ? input.valueAsNumber : null;
+  const value = nativeValue ?? parseFiniteDecimal(raw);
+  if (value === null) return { valid:false, empty:false, value:null, message:'Escribe un número válido.' };
   if (value <= 0) return { valid:false, empty:false, value, message:'Escribe un valor mayor que 0.' };
   return { valid:true, empty:false, value, message:'' };
 }
@@ -138,6 +164,10 @@ function renderResultPlaceholder(title,copy,{kind='pending'}={}){
 function renderScaledResults(recipe,originalValue,targetValue){
   if (!resultZone) return;
   const factor = targetValue / originalValue;
+  if (!Number.isFinite(factor) || factor <= 0) {
+    renderResultPlaceholder('Revisa los volúmenes','No fue posible calcular una proporción válida.',{kind:'invalid'});
+    return;
+  }
   const rows = Array.isArray(recipe?.ingredientes) ? recipe.ingredientes : [];
   const targetLabel = formatNumber(targetValue);
   const factorLabel = formatNumber(factor);
@@ -175,7 +205,7 @@ function renderScaledResults(recipe,originalValue,targetValue){
 }
 
 function updateCalculation({showEmptyErrors=false}={}){
-  const recipe = mixerRecipes.find(item => item.id === activeRecipeId) || null;
+  const recipe = mixerRecipes.find(item => String(item.id) === String(activeRecipeId)) || null;
   if (!recipe) {
     renderResultPlaceholder('Resultado de Mixer','Selecciona una receta para comenzar.');
     return;
@@ -227,7 +257,7 @@ function showRecipe(recipe){
     return;
   }
 
-  activeRecipeId = recipe.id;
+  activeRecipeId = String(recipe.id);
   if (emptyPanel) emptyPanel.hidden = true;
   if (recipePanel) recipePanel.hidden = false;
   if (recipeName) recipeName.textContent = recipe.nombre || 'Receta';
@@ -254,9 +284,9 @@ function populateSelector(){
     .map(recipe => `<option value="${escapeHtml(recipe.id)}">${escapeHtml(recipe.nombre)}</option>`)
     .join('');
 
-  if (previous && mixerRecipes.some(recipe => recipe.id === previous)) {
-    recipeSelect.value = previous;
-    showRecipe(mixerRecipes.find(recipe => recipe.id === previous));
+  if (previous && mixerRecipes.some(recipe => String(recipe.id) === String(previous))) {
+    recipeSelect.value = String(previous);
+    showRecipe(mixerRecipes.find(recipe => String(recipe.id) === String(previous)));
   } else {
     recipeSelect.value = '';
     showRecipe(null);
@@ -268,7 +298,7 @@ export function renderMixer(){
 }
 
 recipeSelect?.addEventListener('change',()=>{
-  const recipe = mixerRecipes.find(item => item.id === recipeSelect.value) || null;
+  const recipe = mixerRecipes.find(item => String(item.id) === String(recipeSelect.value)) || null;
   showRecipe(recipe);
 });
 

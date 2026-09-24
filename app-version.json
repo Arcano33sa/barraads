@@ -1,5 +1,5 @@
 {
-  "version": "1.16.0",
+  "version": "1.17.0",
   "schemaVersion": 1,
-  "notes": "Mixer Etapa 2/3: motor proporcional en memoria, validación positiva de rendimientos, resultados por ingrediente preservando unidades, Al gusto y cantidades históricas vacías, responsive y PWA/cache actualizado."
+  "notes": "Mixer final: hardening de cálculo y compatibilidad histórica, aislamiento sin persistencia, responsive iPad/móvil, accesibilidad básica y PWA/cache actualizado."
 }

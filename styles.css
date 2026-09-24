@@ -398,7 +398,7 @@ body.modal-open{overflow:hidden}
 }
 
 
-/* MIXER · Etapa 1/3 — módulo + selección + rendimiento base */
+/* MIXER — módulo final de cálculo proporcional */
 .mixer-view{padding-bottom:4px}.mixer-hero .hero-subtitle{margin:8px 0 0;color:#d9e0e6;font-size:13px;line-height:1.35;max-width:660px}.mixer-card{background:linear-gradient(180deg,#f7f4ed,#eee8dd);border:1px solid rgba(255,255,255,.58);border-radius:15px;padding:14px 16px 16px;box-shadow:var(--shadow);min-height:calc(100dvh - 205px)}
 .mixer-card-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding:0 2px 14px;border-bottom:1px solid var(--line)}.mixer-card-heading h2{margin:1px 0 3px;font-size:clamp(28px,2.8vw,38px);line-height:1;font-weight:600}.mixer-card-heading p{margin:0;color:#657280;font-size:12px;line-height:1.4;max-width:720px}.mixer-kicker{text-transform:uppercase;letter-spacing:3.2px!important;font-size:8px!important;font-weight:700;color:#7b2831!important}.mixer-stage-badge{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:0 10px;border:1px solid rgba(146,38,49,.24);border-radius:999px;background:rgba(146,38,49,.07);color:#7f2530;font:700 9px/1 system-ui,-apple-system,sans-serif;letter-spacing:.5px;text-transform:uppercase}
 .mixer-recipe-picker{display:grid;gap:6px;width:min(560px,100%);margin:14px 0}.mixer-recipe-picker>span{font-size:12px;font-weight:700;color:#193550}.mixer-select-wrap{position:relative}.mixer-select-wrap select{appearance:none;-webkit-appearance:none;width:100%;height:44px;border:1px solid rgba(17,41,67,.22);border-radius:9px;background:#fbf8f2;color:#17324e;padding:0 42px 0 12px;outline:0;font-size:13px}.mixer-select-wrap select:focus{border-color:#9f4a52;box-shadow:0 0 0 2px rgba(146,38,49,.07)}.mixer-select-wrap svg{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;pointer-events:none;color:#4e6174}
@@ -411,7 +411,7 @@ body.modal-open{overflow:hidden}
 @media (max-width:650px){.mixer-card{padding:12px}.mixer-card-heading{display:grid}.mixer-stage-badge{justify-self:start}.mixer-recipe-summary{grid-template-columns:1fr}.mixer-meta-grid{grid-template-columns:1fr}.mixer-meta-grid>div{border-left:0;border-top:1px solid rgba(17,41,67,.1);padding:8px 3px}.mixer-meta-grid>div:first-child{border-top:0}.mixer-empty{min-height:190px}.mixer-ingredient-row{min-height:46px}.mixer-number-field input{height:46px;font-size:16px}.mixer-recipe-picker{width:100%}.mixer-select-wrap select{height:46px;font-size:14px}}
 @media (pointer:coarse){.mixer-select-wrap select,.mixer-number-field input{min-height:46px}.mixer-ingredient-row{min-height:46px}}
 
-/* Mixer — Etapa 2/3: motor proporcional y resultados */
+/* Mixer — motor proporcional, resultados y hardening responsive */
 .mixer-result-zone{display:block;min-height:68px;padding:0;border:1px dashed rgba(17,41,67,.2);border-radius:11px;background:linear-gradient(90deg,rgba(225,221,212,.55),rgba(248,245,239,.35));color:#6b7782;overflow:hidden}
 .mixer-result-placeholder{display:flex;align-items:center;gap:12px;min-height:68px;padding:11px 13px}
 .mixer-result-placeholder>span{width:38px;height:38px;display:grid;place-items:center;flex:0 0 38px;border-radius:50%;background:#e6e1d8;color:#647487;font-family:system-ui,-apple-system,sans-serif;font-size:20px}
@@ -422,3 +422,21 @@ body.modal-open{overflow:hidden}
 .mixer-result-table{margin-top:8px}.mixer-result-table-head,.mixer-result-row{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(100px,.7fr) minmax(100px,.7fr);gap:12px;align-items:center}.mixer-result-table-head{min-height:28px;padding:0 5px;color:#6e7882;font:700 8px/1 system-ui,-apple-system,sans-serif;text-transform:uppercase;letter-spacing:1px}.mixer-result-table-head span:nth-child(n+2){text-align:right}.mixer-result-row{min-height:43px;padding:6px 5px;border-top:1px solid rgba(17,41,67,.09)}.mixer-result-ingredient{min-width:0;color:#253f58;font-size:12.5px;font-weight:500;overflow-wrap:anywhere}.mixer-result-value{text-align:right;color:#44596d;font:600 11.5px/1.25 system-ui,-apple-system,sans-serif;overflow-wrap:anywhere}.mixer-result-needed{color:#842a34;font-weight:800}.mixer-result-empty{padding:20px 5px;text-align:center;color:#6a7682;font-size:12px}.mixer-result-note{margin:9px 2px 0;color:#6d7884;font-size:9.8px;line-height:1.35}
 @media (max-width:650px){.mixer-result-zone.is-ready{padding:11px}.mixer-result-header{align-items:center}.mixer-result-table-head{display:none}.mixer-result-row{grid-template-columns:1fr 1fr;gap:7px 12px;padding:10px 4px}.mixer-result-ingredient{grid-column:1/-1;font-weight:700;color:#17324d}.mixer-result-value{display:grid;gap:3px;text-align:left;white-space:normal}.mixer-result-value::before{content:attr(data-label);color:#7a858f;font:700 7.5px/1 system-ui,-apple-system,sans-serif;text-transform:uppercase;letter-spacing:.9px}.mixer-result-needed{text-align:right}.mixer-result-needed::before{text-align:right}.mixer-factor-badge{min-height:30px}.mixer-result-header h3{font-size:17px}}
 @media (pointer:coarse){.mixer-result-row{min-height:46px}}
+
+/* Mixer — Etapa 3/3: hardening final responsive/PWA */
+.mixer-card,.mixer-recipe-panel,.mixer-work-grid,.mixer-result-zone,.mixer-result-table,.mixer-result-body{max-width:100%;min-width:0}
+.mixer-select-wrap select,.mixer-number-field input{touch-action:manipulation}
+.mixer-result-value,.mixer-result-ingredient{min-width:0}
+.mixer-number-field input:focus-visible,.mixer-select-wrap select:focus-visible{outline:2px solid rgba(159,74,82,.42);outline-offset:1px}
+@media (min-width:651px) and (max-width:900px){
+  .mixer-card{padding:13px 14px 15px}
+  .mixer-recipe-summary{gap:10px}
+  .mixer-work-grid{gap:10px}
+  .mixer-result-table-head,.mixer-result-row{grid-template-columns:minmax(0,1.45fr) minmax(82px,.72fr) minmax(82px,.72fr);gap:10px}
+}
+@media (max-width:650px){
+  .mixer-view{overflow-x:clip}
+  .mixer-result-header{min-width:0}
+  .mixer-result-header>div{min-width:0}
+  .mixer-result-header h3{overflow-wrap:anywhere}
+}
