@@ -223,7 +223,7 @@ function drawContainedImage(ctx,img,x,y,w,h){
   ctx.drawImage(img,x + ((w - dw) / 2),y + ((h - dh) / 2),dw,dh);
 }
 
-function drawPhotoGallery(ctx,images,brandImage,x,y,w,h){
+function drawPhotoGallery(ctx,images,brandImage,x,y,w,h,compact=false){
   roundedRect(ctx,x,y,w,h,24);
   const gradient = ctx.createLinearGradient(x,y,x + w,y + h);
   gradient.addColorStop(0,'#173a59');
@@ -249,7 +249,7 @@ function drawPhotoGallery(ctx,images,brandImage,x,y,w,h){
     ctx.fillText('Sin fotografía',x + w/2,y + h * .68);
     ctx.font = sans(16,500);
     ctx.fillStyle = 'rgba(246,242,233,.82)';
-    ctx.fillText('La receta conserva toda su información.',x + w/2,y + h * .76);
+    if (!compact) ctx.fillText('La receta conserva toda su información.',x + w/2,y + h * .76);
     ctx.textAlign = 'left';
   } else if (images.length === 1) {
     ctx.fillStyle = 'rgba(255,255,255,.06)';
@@ -645,63 +645,142 @@ function buildPdfFromJpegs(pages){
   return new Blob(chunks,{type:'application/pdf'});
 }
 
-function choosePageEnd(start,targetEnd,safeBreaks,canvasHeight,maxSourceH){
-  if (targetEnd >= canvasHeight) return canvasHeight;
-  const remaining = canvasHeight - start;
-  const pagesNeeded = Math.max(1,Math.ceil(remaining / maxSourceH));
-  const requiredBreak = canvasHeight - ((pagesNeeded - 1) * maxSourceH);
-  const minimum = Math.max(start + Math.round((targetEnd - start) * .58),requiredBreak);
-  const candidates = safeBreaks.filter(value => value >= minimum && value <= targetEnd);
-  return candidates.length ? candidates[candidates.length - 1] : targetEnd;
-}
-
-function canvasToPdfPages(source,safeBreaks){
-  const PAGE_W = 1400;
-  const PAGE_H = 1980;
-  const MARGIN_X = 92;
-  const MARGIN_Y = 48;
-  const drawW = PAGE_W - (MARGIN_X * 2);
-  const scale = drawW / source.width;
-  const maxSourceH = Math.floor((PAGE_H - (MARGIN_Y * 2)) / scale);
-  const pages = [];
-  let start = 0;
-  while (start < source.height) {
-    const targetEnd = Math.min(source.height,start + maxSourceH);
-    const end = choosePageEnd(start,targetEnd,safeBreaks,source.height,maxSourceH);
-    const segmentH = Math.max(1,end - start);
-    const page = document.createElement('canvas');
-    page.width = PAGE_W;
-    page.height = PAGE_H;
-    const ctx = page.getContext('2d',{alpha:false});
-    if (!ctx) throw new Error('No fue posible preparar una página del PDF.');
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0,0,PAGE_W,PAGE_H);
-    const drawH = segmentH * scale;
-    ctx.drawImage(source,0,start,source.width,segmentH,MARGIN_X,MARGIN_Y,drawW,drawH);
-    const dataUrl = page.toDataURL('image/jpeg',.93);
-    pages.push({bytes:bytesFromDataUrl(dataUrl),width:PAGE_W,height:PAGE_H});
-    page.width = 1;
-    page.height = 1;
-    if (end <= start) break;
-    start = end;
+// PDF has its own measured A4 composition; image exports keep their original layout.
+async function createRecipePdfCanvas(recipe,media,{brandImageUrl='./assets/escudo-agora.png'}={}){
+  const canvas = document.createElement('canvas');
+  canvas.width = 1400;
+  canvas.height = 1980;
+  const ctx = canvas.getContext('2d',{alpha:false});
+  if (!ctx) throw new Error('No fue posible preparar la página del PDF.');
+  await document.fonts?.ready;
+  const text = (value,w,font,lineHeight) => {
+    ctx.font = font;
+    const lines = wrapLines(ctx,value,w);
+    return {lines,font,lineHeight,height:Math.max(1,lines.length) * lineHeight};
+  };
+  const paint = (block,bx,by,color=COLORS.ink) => {
+    ctx.font = block.font; ctx.fillStyle = color; ctx.textBaseline = 'top';
+    block.lines.forEach((line,i)=>ctx.fillText(line,bx,by+i*block.lineHeight));
+  };
+  // Keep text sizes fixed while reducing whitespace. Scale only after all
+  // compact profiles fail; 90% keeps body text above 9.5 pt on A4.
+  const profiles = [
+    {name:'normal',margin:48,gap:14,rowGap:14,stepGap:16,primaryTop:56,secondaryTop:40,headerTop:40,headerBottom:18,heroMin:210},
+    {name:'compact',margin:40,gap:10,rowGap:10,stepGap:12,primaryTop:52,secondaryTop:36,headerTop:36,headerBottom:14,heroMin:185},
+    {name:'dense',margin:32,gap:6,rowGap:6,stepGap:8,primaryTop:48,secondaryTop:34,headerTop:32,headerBottom:10,heroMin:160}
+  ];
+  const measure = profile => {
+    const x=profile.margin, width=canvas.width-2*x, gap=profile.gap;
+    const metaColumn=(width-424)/2, metaWidth=metaColumn-20;
+    const title = text(cleanText(recipe?.nombre,'Receta'),width-220,serif(46),50);
+    const author = text(cleanText(recipe?.alquimista) ? `Alquimista: ${recipe.alquimista}` : '',width,serif(25),30);
+    const meta = [
+      ['BASE PRINCIPAL',cleanText(recipe?.basePrincipal,'No especificado')],
+      ['BASES SECUNDARIAS',(recipe?.basesSecundarias || []).join(', ') || 'Ninguna'],
+      ['CATEGORÍA',cleanText(recipe?.categoria,'No especificado')],
+      ['CRISTALERÍA',cleanText(recipe?.cristaleria,'No especificado')]
+    ].map(([label,value])=>({label,block:text(value,metaWidth,serif(26),31)}));
+    const metaRow1 = Math.max(meta[0].block.height,meta[1].block.height)+35;
+    const metaRow2 = Math.max(meta[2].block.height,meta[3].block.height)+35;
+    const heroH = Math.max(profile.heroMin,metaRow1+metaRow2+40);
+    const ingredients = (Array.isArray(recipe?.ingredientes) ? recipe.ingredientes : []).map((row,i)=>({
+      number:i+1, name:text(cleanText(row?.ingrediente,'Ingrediente'),width-394,serif(28),34),
+      amount:text(ingredientAmount(row),260,sans(25,700),32)
+    }));
+    const steps = (Array.isArray(recipe?.alquimia) ? [...recipe.alquimia] : [])
+      .sort((a,b)=>Number(a?.orden||0)-Number(b?.orden||0))
+      .map((step,i)=>({number:i+1,block:text(cleanText(step?.texto),width-100,serif(28),35)}));
+    const ingredientH = profile.primaryTop+8 + (ingredients.length ? ingredients.reduce((h,r)=>h+Math.max(r.name.height,r.amount.height)+profile.rowGap,0) : 46);
+    const alchemyH = profile.primaryTop+8 + (steps.length ? steps.reduce((h,s)=>h+s.block.height+profile.stepGap,0) : 46);
+    const secondary = [
+      ['Técnicas',(recipe?.tecnicas || []).join(' · ') || 'No especificado'],
+      ['Decoración / Garnish',cleanText(recipe?.decoracion,'Sin decoración especificada')],
+      ['Etiquetas',(recipe?.etiquetas || []).join(' · ') || 'No especificado'],
+      ['Notas',cleanText(recipe?.notas,'Sin notas.')]
+    ].map(([label,value])=>({label,block:text(value,width-40,serif(25),31)}));
+    const headerH = profile.headerTop+title.height+(author.lines.length ? author.height+8 : 0)+profile.headerBottom;
+    const totalH = x+headerH+heroH+gap+ingredientH+gap+alchemyH+gap+
+      secondary.reduce((h,s)=>h+profile.secondaryTop+6+s.block.height+gap,0)+46+x;
+    return {profile,x,width,gap,metaColumn,metaWidth,title,author,meta,metaRow1,heroH,ingredients,steps,ingredientH,alchemyH,secondary,totalH};
+  };
+  let layout;
+  for (const profile of profiles) {
+    layout=measure(profile);
+    if (layout.totalH <= canvas.height) break;
   }
-  return pages;
+  const scale=Math.min(1,(canvas.height-2*layout.x)/(layout.totalH-2*layout.x));
+  if (scale < .9) {
+    canvas.width=1; canvas.height=1;
+    throw new Error(`La receta “${cleanText(recipe?.nombre,'Receta')}” supera una página A4 incluso tras compactarla y aplicar el límite de escala legible. Acorta su contenido para exportarla completa.`);
+  }
+  const {profile,x,width,gap,metaColumn,metaWidth,title,author,meta,metaRow1,heroH,ingredients,steps,ingredientH,alchemyH,secondary}=layout;
+  const blobs = normalizePhotoBlobs(media);
+  const [photo,brand] = await Promise.all([loadFirstAvailablePhoto(blobs),loadImageFromUrl(brandImageUrl)]);
+  const bg = ctx.createLinearGradient(0,0,0,canvas.height);
+  bg.addColorStop(0,COLORS.paper); bg.addColorStop(1,'#eee7dc');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.save();
+  ctx.translate(canvas.width*(1-scale)/2,x*(1-scale));
+  ctx.scale(scale,scale);
+  let y=x;
+  paint(text('BARRA DE EL ÁGORA DEL SIR · FICHA DE RECETA',width,sans(20,700),26),x,y,COLORS.burgundy);
+  y+=profile.headerTop; paint(title,x,y,COLORS.navy);
+  drawChip(ctx,cleanText(recipe?.estado,'En prueba'),x+width-190,y+5,190);
+  y+=title.height;
+  if (author.lines.length) { y+=8; paint(author,x,y); y+=author.height; }
+  y+=profile.headerBottom;
+  drawPhotoGallery(ctx,photo.image ? [photo.image] : [],brand,x,y,400,heroH,true);
+  meta.forEach((item,i)=>{
+    const mx=x+424+(i%2)*metaColumn, my=y+20+(i>=2 ? metaRow1+12 : 0);
+    paint(text(item.label,metaWidth,sans(20,700),24),mx,my,COLORS.muted);
+    paint(item.block,mx,my+29);
+  });
+  y+=heroH+gap;
+  const panel = (label,h,primary) => {
+    roundedRect(ctx,x,y,width,h,16); ctx.fillStyle='rgba(255,255,255,.7)'; ctx.fill();
+    ctx.strokeStyle=COLORS.line; ctx.lineWidth=1; ctx.stroke();
+    paint(text(label,width-40,primary ? serif(32) : sans(22,700),36),x+20,y+(primary ? 10 : 6),primary ? COLORS.burgundy : COLORS.navy);
+  };
+  panel('Ingredientes',ingredientH,true);
+  let cy=y+profile.primaryTop;
+  if (!ingredients.length) paint(text('Sin ingredientes registrados.',width-40,serif(28),34),x+20,cy);
+  ingredients.forEach(row=>{
+    paint(text(String(row.number),40,sans(21,700),30),x+20,cy,COLORS.muted);
+    paint(row.name,x+62,cy); paint(row.amount,x+width-280,cy);
+    cy+=Math.max(row.name.height,row.amount.height)+profile.rowGap;
+  });
+  y+=ingredientH+gap;
+  panel('ALQUIMIA',alchemyH,true); cy=y+profile.primaryTop;
+  if (!steps.length) paint(text('Sin pasos registrados.',width-40,serif(28),35),x+20,cy);
+  steps.forEach(step=>{
+    paint(text(String(step.number),40,sans(22,700),30),x+20,cy,COLORS.burgundy);
+    paint(step.block,x+68,cy); cy+=step.block.height+profile.stepGap;
+  });
+  y+=alchemyH+gap;
+  secondary.forEach(item=>{
+    const h=profile.secondaryTop+6+item.block.height;
+    panel(item.label,h,false); paint(item.block,x+20,y+profile.secondaryTop); y+=h+gap;
+  });
+  ctx.strokeStyle=COLORS.burgundy; ctx.beginPath(); ctx.moveTo(x,y+4); ctx.lineTo(x+width,y+4); ctx.stroke();
+  paint(text('Barra de El Ágora del Sir · Buenas bebidas · Mejores conversaciones',width,sans(20,500),26),x,y+18,COLORS.muted);
+  ctx.restore();
+  return {canvas,pdfLayout:{profile:profile.name,scale,measuredHeight:layout.totalH},photoStatus:!blobs.length ? 'none' : photo.index===0 ? 'primary' : photo.index>0 ? 'fallback' : 'placeholder'};
 }
 
-function canvasToPdfBlob(source,safeBreaks){
-  return buildPdfFromJpegs(canvasToPdfPages(source,safeBreaks));
+function recipePdfPage(canvas){
+  return {bytes:bytesFromDataUrl(canvas.toDataURL('image/jpeg',.93)),width:canvas.width,height:canvas.height};
 }
 
 async function buildRecipeArtifact(recipe,media,format,{brandImageUrl='./assets/escudo-agora.png'}={}){
   const type = String(format || '').toLowerCase();
   if (!['png','jpg','pdf'].includes(type)) throw new Error('Formato de exportación no válido.');
-  const {canvas,safeBreaks,photoStatus} = await createRecipeCanvas(recipe,media,{brandImageUrl});
+  const {canvas,photoStatus,pdfLayout} = await (type === 'pdf' ? createRecipePdfCanvas : createRecipeCanvas)(recipe,media,{brandImageUrl});
   const base = safeRecipeFilename(recipe?.nombre);
   let blob;
   if (type === 'png') blob = await canvasToBlob(canvas,'image/png');
   if (type === 'jpg') blob = await canvasToBlob(canvas,'image/jpeg',.94);
-  if (type === 'pdf') blob = canvasToPdfBlob(canvas,safeBreaks);
-  const result = {blob,filename:`${base}.${type}`,bytes:blob.size,type:blob.type,width:canvas.width,height:canvas.height,photoStatus};
+  if (type === 'pdf') blob = buildPdfFromJpegs([recipePdfPage(canvas)]);
+  const result = {blob,filename:`${base}.${type}`,bytes:blob.size,type:blob.type,width:canvas.width,height:canvas.height,photoStatus,...(pdfLayout ? {pdfLayout,pageCount:1} : {})};
   canvas.width = 1;
   canvas.height = 1;
   return result;
@@ -810,6 +889,7 @@ export async function exportRecipesFile(entries,format,{brandImageUrl='./assets/
   try {
     if (type === 'pdf') {
       const pages = [];
+      const pdfLayouts = [];
       let photoFallbackCount = 0;
       let photoPlaceholderCount = 0;
       for (let index=0;index<safeEntries.length;index+=1) {
@@ -817,23 +897,26 @@ export async function exportRecipesFile(entries,format,{brandImageUrl='./assets/
         onProgress?.({phase:'render',current:index + 1,total:safeEntries.length,recipe:entry.recipe});
         let rendered;
         try {
-          rendered = await createRecipeCanvas(entry.recipe,entry.media,{brandImageUrl});
+          rendered = await createRecipePdfCanvas(entry.recipe,entry.media,{brandImageUrl});
         } catch (error) {
           throw new Error(`No fue posible generar la ficha de “${cleanText(entry.recipe?.nombre,'Receta')}”. ${error?.message || ''}`.trim());
         }
         if (rendered.photoStatus === 'fallback') photoFallbackCount += 1;
         if (rendered.photoStatus === 'placeholder') photoPlaceholderCount += 1;
-        const recipePages = canvasToPdfPages(rendered.canvas,rendered.safeBreaks);
-        pages.push(...recipePages);
-        rendered.canvas.width = 1;
-        rendered.canvas.height = 1;
+        try {
+          pages.push(recipePdfPage(rendered.canvas));
+          pdfLayouts.push(rendered.pdfLayout);
+        } finally {
+          rendered.canvas.width = 1;
+          rendered.canvas.height = 1;
+        }
         await new Promise(resolve => setTimeout(resolve,0));
       }
       onProgress?.({phase:'package',current:safeEntries.length,total:safeEntries.length});
       const blob = buildPdfFromJpegs(pages);
       const filename = `${safeCollectionFilename(collectionName)}.pdf`;
       downloadBlob(blob,filename);
-      return {filename,bytes:blob.size,type:blob.type,recipeCount:safeEntries.length,pageCount:pages.length,photoFallbackCount,photoPlaceholderCount};
+      return {filename,bytes:blob.size,type:blob.type,recipeCount:safeEntries.length,pageCount:pages.length,pdfLayouts,photoFallbackCount,photoPlaceholderCount};
     }
 
     const names = uniqueExportNames(safeEntries.map(entry => entry.recipe),type);

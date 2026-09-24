@@ -477,3 +477,6 @@ body.modal-open{overflow:hidden}
 @media (pointer:coarse){.mixer-history-letter{min-height:50px}.mixer-history-action,.mixer-history-back{min-height:44px}}
 
 .detail-meta-grid > .detail-alchemist{grid-column:1 / -1}
+
+/* PWA actions must respect their availability state despite button display rules. */
+.pwa-actions-panel button[hidden]{display:none}

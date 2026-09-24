@@ -1,3 +1,14 @@
+## v1.22.2 - PDF A4 y validación PWA (E1-E3)
+
+- PDF vertical A4: una receta completa por hoja, sin compartir página ni dividirla.
+- Plantilla específica de PDF: ingredientes y ALQUIMIA destacados, cabecera/foto y bloques secundarios compactos.
+- Medición de texto y compactación progresiva; escalado solo al final, con mínimo del 90%. Si no cabe, se informa y no se descarga una colección parcial.
+- PNG/JPG comprobados sin cambios de bytes con y sin foto frente a v1.21.1.
+- PWA v1.22.2: actualización probada desde v1.21.1, conservación de recetas/fotografías y exportación offline tras recargar.
+- Corregida la visibilidad de los botones PWA marcados como ocultos.
+- E3 aprobada en Chrome local y tablet simulada en ambas orientaciones. **Pendiente validación física en iPad/Safari y PWA instalada**; no se ha publicado esta versión.
+- Evidencia, reproducción y límites en [tests/PDF-etapa-3.md](tests/PDF-etapa-3.md).
+
 ## v1.21.1 — Al Gusto: protecciones (E1)
 
 - “Al Gusto” se reserva para cantidad cero: no puede agregarse ni renombrarse como unidad del catálogo, y una cantidad positiva con esa unidad es inválida.

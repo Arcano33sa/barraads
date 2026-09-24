@@ -1,5 +1,5 @@
 {
-  "version": "1.21.1",
+  "version": "1.22.2",
   "schemaVersion": 1,
-  "notes": "Al Gusto reservado para cantidad cero; validación reforzada y corrección explícita de unidades históricas al editar."
+  "notes": "PDF A4 consolidado: una receta por hoja, compactación progresiva y límite de escala legible."
 }
